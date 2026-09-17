@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏭 Ilham ERP — Manufaktur</title>
+  <meta name="description" content="ERP Manufaktur — Sistem Pembelajaran Akuntansi Biaya" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <span class="current">Dashboard</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <!-- Judul -->
+    <section class="page-title">
+      <h1>🏭 Dashboard Manufaktur</h1>
+      <p class="subtitle">
+        Sistem pembelajaran akuntansi biaya &amp; ERP manufaktur —
+        dari bahan baku, proses produksi, hingga laporan harga pokok produksi.
+      </p>
+    </section>
+
+    <!-- Banner Usaha Aktif -->
+    <section id="activeCompany" class="company-card">
+      <div class="company-icon">🏢</div>
+      <div class="company-info">
+        <span class="company-label">Usaha Aktif</span>
+        <span class="company-name" id="companyName">Belum ada usaha dipilih</span>
+      </div>
+      <a href="master-data/data-usaha.html" class="btn btn-light btn-sm">
+        ⚙️ Kelola Usaha
+      </a>
+    </section>
+
+    <!-- Ringkasan Statistik -->
+    <section class="menu-group">
+      <h2 class="group-title">📊 Ringkasan Data</h2>
+      <div class="card-grid" id="statsGrid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🧱</div>
+          <h3 id="statBahan">0</h3>
+          <p>Bahan Baku Terdaftar</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📦</div>
+          <h3 id="statProduk">0</h3>
+          <p>Produk Jadi</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📐</div>
+          <h3 id="statBOM">0</h3>
+          <p>Bill of Materials</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🏭</div>
+          <h3 id="statSPK">0</h3>
+          <p>SPK Aktif</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODUL 1: MASTER DATA -->
+    <section class="menu-group">
+      <h2 class="group-title">🗂️ Master Data</h2>
+      <div class="card-grid">
+
+        <a href="master-data/index.html" class="menu-card">
+          <div class="card-icon">🗂️</div>
+          <h3>Hub Master Data</h3>
+          <p>Pusat semua data induk: perusahaan, akun, supplier, bahan baku, BOM, dan lainnya.</p>
+        </a>
+
+        <a href="master-data/data-usaha.html" class="menu-card">
+          <div class="card-icon">🏢</div>
+          <h3>Data Usaha</h3>
+          <p>Profil perusahaan, alamat, NPWP, periode/tahun buku, dan pemilihan usaha aktif.</p>
+        </a>
+
+        <a href="master-data/chart-of-accounts.html" class="menu-card">
+          <div class="card-icon">📋</div>
+          <h3>Chart of Accounts</h3>
+          <p>Daftar akun termasuk persediaan BB, BDP, BJ, BOP, dan akun manufaktur lainnya.</p>
+        </a>
+
+        <a href="master-data/bahan-baku.html" class="menu-card">
+          <div class="card-icon">🧱</div>
+          <h3>Bahan Baku</h3>
+          <p>Material mentah: kode, nama, satuan, harga beli, stok minimum, dan supplier.</p>
+        </a>
+
+        <a href="master-data/produk-jadi.html" class="menu-card">
+          <div class="card-icon">📦</div>
+          <h3>Produk Jadi</h3>
+          <p>Finished goods: kode, nama, satuan, harga jual, dan target produksi.</p>
+        </a>
+
+        <a href="master-data/bom.html" class="menu-card">
+          <div class="card-icon">📐</div>
+          <h3>Bill of Materials</h3>
+          <p>Resep produk: komposisi bahan baku &amp; jumlah per 1 unit produk jadi.</p>
+        </a>
+
+        <a href="master-data/work-center.html" class="menu-card">
+          <div class="card-icon">⚙️</div>
+          <h3>Work Center</h3>
+          <p>Data mesin / stasiun kerja beserta kapasitas &amp; tarif BOP per jam.</p>
+        </a>
+
+        <a href="master-data/karyawan.html" class="menu-card">
+          <div class="card-icon">👷</div>
+          <h3>Karyawan</h3>
+          <p>Tenaga kerja langsung (BTKL) &amp; tidak langsung beserta tarif upah per jam.</p>
+        </a>
+
+        <a href="master-data/supplier.html" class="menu-card">
+          <div class="card-icon">🚚</div>
+          <h3>Supplier</h3>
+          <p>Vendor bahan baku, termin pembayaran, dan informasi kontak.</p>
+        </a>
+
+        <a href="master-data/customer.html" class="menu-card">
+          <div class="card-icon">🛒</div>
+          <h3>Customer</h3>
+          <p>Pelanggan barang jadi, termin penjualan, dan informasi kontak.</p>
+        </a>
+
+        <a href="master-data/gudang.html" class="menu-card">
+          <div class="card-icon">🏬</div>
+          <h3>Gudang</h3>
+          <p>Lokasi penyimpanan: gudang bahan baku, BDP, dan barang jadi.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- MODUL 2: PRODUKSI -->
+    <section class="menu-group">
+      <h2 class="group-title">🏭 Produksi</h2>
+      <div class="card-grid">
+
+        <a href="produksi/index.html" class="menu-card">
+          <div class="card-icon">🏭</div>
+          <h3>Hub Produksi</h3>
+          <p>Pusat modul produksi: SPK, permintaan bahan, BTKL, BOP, dan hasil produksi.</p>
+        </a>
+
+        <a href="produksi/spk.html" class="menu-card">
+          <div class="card-icon">📝</div>
+          <h3>Surat Perintah Kerja</h3>
+          <p>Buat SPK produksi: produk apa, berapa unit, dan kapan target selesai.</p>
+        </a>
+
+        <a href="produksi/permintaan-bahan.html" class="menu-card">
+          <div class="card-icon">📤</div>
+          <h3>Permintaan Bahan</h3>
+          <p>Ambil bahan baku dari gudang ke lantai produksi sesuai BOM.</p>
+        </a>
+
+        <a href="produksi/pemakaian-bahan.html" class="menu-card">
+          <div class="card-icon">🧱</div>
+          <h3>Pemakaian Bahan</h3>
+          <p>Catat BBB aktual yang dipakai — masuk ke Barang Dalam Proses (BDP).</p>
+        </a>
+
+        <a href="produksi/input-btkl.html" class="menu-card">
+          <div class="card-icon">👷</div>
+          <h3>Input BTKL</h3>
+          <p>Catat jam kerja langsung per SPK — masuk ke BDP.</p>
+        </a>
+
+        <a href="produksi/input-bop.html" class="menu-card">
+          <div class="card-icon">⚙️</div>
+          <h3>Input BOP</h3>
+          <p>Alokasi overhead pabrik (listrik, penyusutan mesin, dll.) ke BDP.</p>
+        </a>
+
+        <a href="produksi/hasil-produksi.html" class="menu-card">
+          <div class="card-icon">✅</div>
+          <h3>Hasil Produksi</h3>
+          <p>Barang jadi selesai — pindah dari BDP ke Persediaan Barang Jadi.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- MODUL 3: PERSEDIAAN -->
+    <section class="menu-group">
+      <h2 class="group-title">📦 Persediaan</h2>
+      <div class="card-grid">
+
+        <a href="persediaan/index.html" class="menu-card">
+          <div class="card-icon">📦</div>
+          <h3>Hub Persediaan</h3>
+          <p>Pusat modul persediaan: bahan baku, BDP, barang jadi, dan kartu stok.</p>
+        </a>
+
+        <a href="persediaan/stok-bahan-baku.html" class="menu-card">
+          <div class="card-icon">🧱</div>
+          <h3>Stok Bahan Baku</h3>
+          <p>Mutasi &amp; saldo bahan baku di gudang.</p>
+        </a>
+
+        <a href="persediaan/stok-bdp.html" class="menu-card">
+          <div class="card-icon">🔧</div>
+          <h3>Stok BDP</h3>
+          <p>Nilai Barang Dalam Proses per SPK / per departemen.</p>
+        </a>
+
+        <a href="persediaan/stok-barang-jadi.html" class="menu-card">
+          <div class="card-icon">📦</div>
+          <h3>Stok Barang Jadi</h3>
+          <p>Mutasi &amp; saldo produk selesai di gudang barang jadi.</p>
+        </a>
+
+        <a href="persediaan/kartu-stok.html" class="menu-card">
+          <div class="card-icon">📇</div>
+          <h3>Kartu Stok</h3>
+          <p>Riwayat masuk-keluar per item, dengan saldo berjalan.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- MODUL 4: PEMBELIAN -->
+    <section class="menu-group">
+      <h2 class="group-title">🚚 Pembelian</h2>
+      <div class="card-grid">
+
+        <a href="pembelian/index.html" class="menu-card">
+          <div class="card-icon">🚚</div>
+          <h3>Hub Pembelian</h3>
+          <p>Pusat modul pembelian: PO, penerimaan barang, faktur, dan pembayaran.</p>
+        </a>
+
+        <a href="pembelian/purchase-order.html" class="menu-card">
+          <div class="card-icon">📄</div>
+          <h3>Purchase Order</h3>
+          <p>Pesanan pembelian bahan baku ke supplier.</p>
+        </a>
+
+        <a href="pembelian/penerimaan-barang.html" class="menu-card">
+          <div class="card-icon">📥</div>
+          <h3>Penerimaan Barang</h3>
+          <p>Barang datang dari supplier — tambah stok bahan baku.</p>
+        </a>
+
+        <a href="pembelian/faktur-pembelian.html" class="menu-card">
+          <div class="card-icon">🧾</div>
+          <h3>Faktur Pembelian</h3>
+          <p>Tagihan dari supplier dan pencatatan utang usaha.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- MODUL 5: PENJUALAN -->
+    <section class="menu-group">
+      <h2 class="group-title">🛒 Penjualan</h2>
+      <div class="card-grid">
+
+        <a href="penjualan/index.html" class="menu-card">
+          <div class="card-icon">🛒</div>
+          <h3>Hub Penjualan</h3>
+          <p>Pusat modul penjualan: sales order, pengiriman, dan faktur.</p>
+        </a>
+
+        <a href="penjualan/sales-order.html" class="menu-card">
+          <div class="card-icon">📋</div>
+          <h3>Sales Order</h3>
+          <p>Pesanan dari customer untuk barang jadi.</p>
+        </a>
+
+        <a href="penjualan/faktur-penjualan.html" class="menu-card">
+          <div class="card-icon">🧾</div>
+          <h3>Faktur Penjualan</h3>
+          <p>Tagihan ke customer &amp; pencatatan piutang usaha.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- MODUL 6: AKUNTANSI -->
+    <section class="menu-group">
+      <h2 class="group-title">📒 Akuntansi</h2>
+      <div class="card-grid">
+
+        <a href="akuntansi/index.html" class="menu-card">
+          <div class="card-icon">📒</div>
+          <h3>Hub Akuntansi</h3>
+          <p>Pusat siklus akuntansi: jurnal, buku besar, neraca, laporan keuangan.</p>
+        </a>
+
+        <a href="akuntansi/jurnal-umum.html" class="menu-card">
+          <div class="card-icon">📖</div>
+          <h3>Jurnal Umum</h3>
+          <p>Jurnal otomatis dari transaksi + jurnal manual.</p>
+        </a>
+
+        <a href="akuntansi/buku-besar.html" class="menu-card">
+          <div class="card-icon">📚</div>
+          <h3>Buku Besar</h3>
+          <p>Mutasi tiap akun, total debit/kredit, dan saldo berjalan.</p>
+        </a>
+
+        <a href="akuntansi/neraca-saldo.html" class="menu-card">
+          <div class="card-icon">🧮</div>
+          <h3>Neraca Saldo</h3>
+          <p>Saldo seluruh akun — pastikan total debit = total kredit.</p>
+        </a>
+
+        <a href="akuntansi/jurnal-penyesuaian.html" class="menu-card">
+          <div class="card-icon">🔧</div>
+          <h3>Jurnal Penyesuaian</h3>
+          <p>Penyusutan, beban akrual, dan pendapatan diterima di muka.</p>
+        </a>
+
+        <a href="akuntansi/neraca-lajur.html" class="menu-card">
+          <div class="card-icon">📊</div>
+          <h3>Neraca Lajur</h3>
+          <p>Worksheet — khas praktikum akuntansi.</p>
+        </a>
+
+        <a href="akuntansi/laporan-keuangan.html" class="menu-card">
+          <div class="card-icon">📈</div>
+          <h3>Laporan Keuangan</h3>
+          <p>Laba rugi, posisi keuangan, dan perubahan ekuitas.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- MODUL 7: LAPORAN MANUFAKTUR -->
+    <section class="menu-group">
+      <h2 class="group-title">📊 Laporan Manufaktur</h2>
+      <div class="card-grid">
+
+        <a href="laporan-manufaktur/index.html" class="menu-card">
+          <div class="card-icon">📊</div>
+          <h3>Hub Laporan Manufaktur</h3>
+          <p>Pusat laporan khusus manufaktur.</p>
+        </a>
+
+        <a href="laporan-manufaktur/harga-pokok-produksi.html" class="menu-card">
+          <div class="card-icon">🧮</div>
+          <h3>Harga Pokok Produksi</h3>
+          <p>BBB + BTKL + BOP = HPProduksi periode.</p>
+        </a>
+
+        <a href="laporan-manufaktur/harga-pokok-penjualan.html" class="menu-card">
+          <div class="card-icon">💰</div>
+          <h3>Harga Pokok Penjualan</h3>
+          <p>HPProduksi + persediaan awal − persediaan akhir.</p>
+        </a>
+
+        <a href="laporan-manufaktur/biaya-per-departemen.html" class="menu-card">
+          <div class="card-icon">🏢</div>
+          <h3>Biaya per Departemen</h3>
+          <p>Untuk process costing — biaya per departemen produksi.</p>
+        </a>
+
+        <a href="laporan-manufaktur/variance.html" class="menu-card">
+          <div class="card-icon">📉</div>
+          <h3>Analisis Variance</h3>
+          <p>Selisih standar vs aktual biaya produksi.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- MODUL 8: KHUSUS -->
+    <section class="menu-group">
+      <h2 class="group-title">📑 Modul Khusus</h2>
+      <div class="card-grid">
+
+        <a href="psak/psak-115.html" class="menu-card">
+          <div class="card-icon">📑</div>
+          <h3>PSAK 115</h3>
+          <p>Pengakuan pendapatan dari kontrak dengan pelanggan.</p>
+        </a>
+
+        <a href="psak/psak-14.html" class="menu-card">
+          <div class="card-icon">📦</div>
+          <h3>PSAK 14</h3>
+          <p>Persediaan — relevan untuk manufaktur (BB, BDP, BJ).</p>
+        </a>
+
+        <a href="psak/psak-16.html" class="menu-card">
+          <div class="card-icon">🏭</div>
+          <h3>PSAK 16</h3>
+          <p>Aset Tetap — mesin, pabrik, dan penyusutan.</p>
+        </a>
+
+        <a href="export.html" class="menu-card">
+          <div class="card-icon">📥</div>
+          <h3>Export Excel</h3>
+          <p>Export data akuntansi &amp; laporan keuangan ke format Excel.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- Info Alur Manufaktur -->
+    <section class="card" style="margin-top:40px;">
+      <h2 class="card-title">🔄 Alur Manufaktur</h2>
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:0.9rem;">
+        <span class="badge badge-primary">🧱 Bahan Baku</span> <span>→</span>
+        <span class="badge badge-primary">📝 SPK</span> <span>→</span>
+        <span class="badge badge-primary">📤 Pemakaian Bahan</span> <span>→</span>
+        <span class="badge badge-warning">🔧 BDP</span> <span>→</span>
+        <span class="badge badge-warning">👷 BTKL</span> <span>→</span>
+        <span class="badge badge-warning">⚙️ BOP</span> <span>→</span>
+        <span class="badge badge-success">✅ Barang Jadi</span> <span>→</span>
+        <span class="badge badge-success">💰 Penjualan</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="assets/js/app.js"></script>
+  <script>
+    // ===== Tampilkan Usaha Aktif =====
+    (function () {
+      const active = Store.get('active_usaha', null);
+      const nameEl = document.getElementById('companyName');
+      if (active && active.nama) {
+        nameEl.textContent = active.nama;
+      } else {
+        nameEl.textContent = 'Belum ada usaha dipilih';
+      }
+    })();
+
+    // ===== Statistik Ringkasan =====
+    (function () {
+      const bahan  = Store.get('bahan_baku', []);
+      const produk = Store.get('produk_jadi', []);
+      const bom    = Store.get('bom', []);
+      const spk    = Store.get('spk', []);
+
+      document.getElementById('statBahan').textContent  = Array.isArray(bahan)  ? bahan.length  : 0;
+      document.getElementById('statProduk').textContent = Array.isArray(produk) ? produk.length : 0;
+      document.getElementById('statBOM').textContent    = Array.isArray(bom)    ? bom.length    : 0;
+      document.getElementById('statSPK').textContent    = Array.isArray(spk)
+        ? spk.filter(s => s.status && s.status.toLowerCase() !== 'selesai').length
+        : 0;
+    })();
+  </script>
+</body>
+    </html>

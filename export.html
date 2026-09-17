@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Export Excel — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="index.html">Dashboard</a>
+        <span>/</span>
+        <span class="current">Export Excel</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📥 Export Excel</h1>
+      <p class="subtitle">
+        Unduh data akuntansi dan laporan keuangan dalam format .xlsx —
+        tabel jadi, siap dibuka di Excel/Google Sheets.
+      </p>
+    </section>
+
+    <section class="menu-group">
+      <h2 class="group-title">📒 Akuntansi</h2>
+      <div class="card-grid">
+
+        <div class="menu-card" style="cursor:pointer;" onclick="exportJurnalUmum()">
+          <div class="card-icon">📖</div>
+          <h3>Jurnal Umum</h3>
+          <p>Semua entri jurnal, otomatis + manual.</p>
+        </div>
+
+        <div class="menu-card" style="cursor:pointer;" onclick="exportBukuBesar()">
+          <div class="card-icon">📚</div>
+          <h3>Buku Besar</h3>
+          <p>Satu sheet per akun, lengkap dengan saldo berjalan.</p>
+        </div>
+
+        <div class="menu-card" style="cursor:pointer;" onclick="exportNeracaSaldo()">
+          <div class="card-icon">🧮</div>
+          <h3>Neraca Saldo</h3>
+          <p>Saldo seluruh akun sebelum penyesuaian.</p>
+        </div>
+
+        <div class="menu-card" style="cursor:pointer;" onclick="exportLaporanKeuangan()">
+          <div class="card-icon">📈</div>
+          <h3>Laporan Keuangan</h3>
+          <p>2 sheet: Laba Rugi &amp; Posisi Keuangan (final).</p>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="menu-group">
+      <h2 class="group-title">📦 Persediaan</h2>
+      <div class="card-grid">
+
+        <div class="menu-card" style="cursor:pointer;" onclick="exportPersediaan()">
+          <div class="card-icon">📦</div>
+          <h3>Stok Persediaan</h3>
+          <p>3 sheet: Bahan Baku, Barang Jadi, dan ringkasan nilai BDP.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <div id="statusExport"></div>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="assets/js/app.js"></script>
+  <script>
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+    function getCOA() { return Store.get('chart_of_accounts', []) || []; }
+    function getBahan() { return Store.get('bahan_baku', []) || []; }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getSPK() { return Store.get('spk', []) || []; }
+    function getPakai() { return Store.get('pemakaian_bahan', []) || []; }
+    function getBTKL() { return Store.get('btkl', []) || []; }
+    function getBOP() { return Store.get('bop_dibebankan', []) || []; }
+    function getBusiness() { return Store.get('active_usaha', null); }
+
+    const LABEL_SUMBER = {
+      manual: 'Manual', pemakaian_bahan: 'Pemakaian Bahan', btkl: 'BTKL',
+      bop_dibebankan: 'BOP Dibebankan', bop_aktual: 'BOP Aktual', hasil_produksi: 'Hasil Produksi',
+      faktur_pembelian: 'Faktur Pembelian', pembayaran_pembelian: 'Bayar Pembelian',
+      faktur_penjualan_jual: 'Penjualan', faktur_penjualan_hpp: 'HPP Penjualan',
+      pembayaran_penjualan: 'Terima Penjualan', jurnal_penyesuaian: 'Penyesuaian', psak115: 'PSAK 115',
+    };
+
+    function namaUsaha() {
+      const b = getBusiness();
+      return b ? b.nama : 'Usaha';
+    }
+
+    function exportToExcel(filename, sheets) {
+      if (typeof XLSX === 'undefined') { notify('❌ Library Excel belum termuat. Cek koneksi internet.', 'danger'); return; }
+
+      const workbook = XLSX.utils.book_new();
+      const usedNames = {};
+
+      sheets.forEach(sheet => {
+        const worksheet = XLSX.utils.aoa_to_sheet(sheet.rows);
+        if (sheet.colWidths) worksheet['!cols'] = sheet.colWidths.map(w => ({ wch: w }));
+        let safeName = String(sheet.name).replace(/[:\\\/\?\*\[\]]/g, '-').slice(0, 31);
+        if (usedNames[safeName] !== undefined) {
+          usedNames[safeName] += 1;
+          const suffix = ' (' + usedNames[safeName] + ')';
+          safeName = safeName.slice(0, 31 - suffix.length) + suffix;
+        } else { usedNames[safeName] = 0; }
+        XLSX.utils.book_append_sheet(workbook, worksheet, safeName);
+      });
+
+      XLSX.writeFile(workbook, filename);
+      notify(`✅ ${filename} berhasil diunduh`, 'success');
+    }
+
+    /* ========== EXPORT JURNAL UMUM ========== */
+    function exportJurnalUmum() {
+      const jurnal = getJurnal().slice().sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)));
+      if (jurnal.length === 0) { notify('❌ Belum ada jurnal untuk diexport', 'danger'); return; }
+
+      const rows = [[`Jurnal Umum - ${namaUsaha()}`], [], ['Tanggal', 'Ref', 'Keterangan', 'Sumber', 'Akun', 'Debit', 'Kredit']];
+      let totalDebit = 0, totalKredit = 0;
+
+      jurnal.forEach(j => {
+        j.detail.forEach((d, i) => {
+          totalDebit += Number(d.debit) || 0;
+          totalKredit += Number(d.kredit) || 0;
+          rows.push([
+            i === 0 ? j.tanggal : '', i === 0 ? (j.ref || '-') : '', i === 0 ? j.keterangan : '',
+            i === 0 ? (LABEL_SUMBER[j.source] || j.source) : '',
+            `${d.kode} - ${d.nama}`, d.debit || 0, d.kredit || 0,
+          ]);
+        });
+      });
+
+      rows.push([]);
+      rows.push(['', '', '', '', 'TOTAL', totalDebit, totalKredit]);
+
+      exportToExcel(`Jurnal-Umum-${namaUsaha()}.xlsx`, [{ name: 'Jurnal Umum', rows, colWidths: [12, 12, 30, 16, 28, 16, 16] }]);
+    }
+
+    /* ========== EXPORT BUKU BESAR (multi-sheet) ========== */
+    function exportBukuBesar() {
+      const coa = getCOA().slice().sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+      const jurnal = getJurnal();
+      const sheets = [];
+
+      coa.forEach(akun => {
+        const mutasi = [];
+        jurnal.forEach(j => j.detail.forEach(d => {
+          if (d.kode === akun.kode && (d.debit > 0 || d.kredit > 0)) {
+            mutasi.push({ tanggal: j.tanggal, keterangan: j.keterangan, debit: d.debit || 0, kredit: d.kredit || 0, createdAt: j.createdAt });
+          }
+        }));
+        if (mutasi.length === 0) return;
+
+        mutasi.sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)) || String(a.createdAt || '').localeCompare(b.createdAt || ''));
+
+        let saldo = 0, totalDebit = 0, totalKredit = 0;
+        const rows = [[`${akun.kode} - ${akun.nama}`], [`Tipe: ${akun.tipe} | Saldo Normal: ${akun.saldoNormal}`], [], ['Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo']];
+
+        mutasi.forEach(m => {
+          totalDebit += m.debit; totalKredit += m.kredit;
+          saldo += akun.saldoNormal === 'Debit' ? (m.debit - m.kredit) : (m.kredit - m.debit);
+          rows.push([m.tanggal, m.keterangan, m.debit || '', m.kredit || '', saldo]);
+        });
+
+        rows.push([]);
+        rows.push(['', 'TOTAL', totalDebit, totalKredit, saldo]);
+
+        sheets.push({ name: `${akun.kode} ${akun.nama}`, rows, colWidths: [12, 30, 16, 16, 16] });
+      });
+
+      if (sheets.length === 0) { notify('❌ Belum ada transaksi untuk diexport', 'danger'); return; }
+      exportToExcel(`Buku-Besar-${namaUsaha()}.xlsx`, sheets);
+    }
+
+    /* ========== EXPORT NERACA SALDO ========== */
+    function exportNeracaSaldo() {
+      const coa = getCOA().slice().sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+      const jurnal = getJurnal().filter(j => j.source !== 'jurnal_penyesuaian');
+
+      const raw = {};
+      coa.forEach(a => { raw[a.kode] = { debit: 0, kredit: 0 }; });
+      jurnal.forEach(j => j.detail.forEach(d => { if (raw[d.kode]) { raw[d.kode].debit += Number(d.debit) || 0; raw[d.kode].kredit += Number(d.kredit) || 0; } }));
+
+      const rows = [[`Neraca Saldo (Sebelum Penyesuaian) - ${namaUsaha()}`], [], ['Kode', 'Nama Akun', 'Tipe', 'Debit', 'Kredit']];
+      let totalDebit = 0, totalKredit = 0;
+
+      coa.forEach(a => {
+        const r = raw[a.kode];
+        const net = r.debit - r.kredit;
+        const d = net > 0 ? net : 0, k = net < 0 ? -net : 0;
+        if (d === 0 && k === 0) return;
+        totalDebit += d; totalKredit += k;
+        rows.push([a.kode, a.nama, a.tipe, d || '', k || '']);
+      });
+
+      rows.push([]);
+      rows.push(['', '', 'TOTAL', totalDebit, totalKredit]);
+
+      exportToExcel(`Neraca-Saldo-${namaUsaha()}.xlsx`, [{ name: 'Neraca Saldo', rows, colWidths: [10, 30, 12, 16, 16] }]);
+    }
+
+    /* ========== EXPORT LAPORAN KEUANGAN ========== */
+    function computeSaldoKelompok(akun, jurnalList) {
+      let debit = 0, kredit = 0;
+      jurnalList.forEach(j => j.detail.forEach(d => { if (d.kode === akun.kode) { debit += Number(d.debit) || 0; kredit += Number(d.kredit) || 0; } }));
+      const kelompokDebit = akun.tipe === 'Aset' || akun.tipe === 'Beban';
+      return kelompokDebit ? (debit - kredit) : (kredit - debit);
+    }
+
+    function exportLaporanKeuangan() {
+      const coa = getCOA().slice().sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+      const jurnal = getJurnal();
+
+      const saldoMap = {};
+      coa.forEach(a => { saldoMap[a.kode] = computeSaldoKelompok(a, jurnal); });
+
+      const pendapatan = coa.filter(a => a.tipe === 'Pendapatan');
+      const beban = coa.filter(a => a.tipe === 'Beban');
+      const aset = coa.filter(a => a.tipe === 'Aset');
+      const liabilitas = coa.filter(a => a.tipe === 'Liabilitas');
+      const ekuitas = coa.filter(a => a.tipe === 'Ekuitas');
+
+      const totalPendapatan = pendapatan.reduce((s, a) => s + saldoMap[a.kode], 0);
+      const totalBeban = beban.reduce((s, a) => s + saldoMap[a.kode], 0);
+      const labaRugi = totalPendapatan - totalBeban;
+
+      const totalAset = aset.reduce((s, a) => s + saldoMap[a.kode], 0);
+      const totalLiabilitas = liabilitas.reduce((s, a) => s + saldoMap[a.kode], 0);
+      const totalEkuitasAkun = ekuitas.reduce((s, a) => s + saldoMap[a.kode], 0);
+      const totalEkuitas = totalEkuitasAkun + labaRugi;
+
+      const labaRugiRows = [
+        [`Laporan Laba Rugi - ${namaUsaha()}`], [],
+        ['PENDAPATAN'], ['Kode', 'Nama Akun', 'Nilai'],
+        ...pendapatan.map(a => [a.kode, a.nama, saldoMap[a.kode]]),
+        ['', 'Total Pendapatan', totalPendapatan], [],
+        ['BEBAN'], ['Kode', 'Nama Akun', 'Nilai'],
+        ...beban.map(a => [a.kode, a.nama, saldoMap[a.kode]]),
+        ['', 'Total Beban', totalBeban], [],
+        ['', 'LABA (RUGI) BERSIH', labaRugi],
+      ];
+
+      const neracaRows = [
+        [`Laporan Posisi Keuangan - ${namaUsaha()}`], [],
+        ['ASET'], ['Kode', 'Nama Akun', 'Nilai'],
+        ...aset.map(a => [a.kode, a.nama, saldoMap[a.kode]]),
+        ['', 'Total Aset', totalAset], [],
+        ['LIABILITAS'], ['Kode', 'Nama Akun', 'Nilai'],
+        ...liabilitas.map(a => [a.kode, a.nama, saldoMap[a.kode]]),
+        ['', 'Total Liabilitas', totalLiabilitas], [],
+        ['EKUITAS'], ['Kode', 'Nama Akun', 'Nilai'],
+        ...ekuitas.map(a => [a.kode, a.nama, saldoMap[a.kode]]),
+        ['', 'Laba (Rugi) Berjalan', labaRugi],
+        ['', 'Total Ekuitas', totalEkuitas], [],
+        ['', 'TOTAL LIABILITAS + EKUITAS', totalLiabilitas + totalEkuitas],
+      ];
+
+      exportToExcel(`Laporan-Keuangan-${namaUsaha()}.xlsx`, [
+        { name: 'Laba Rugi', rows: labaRugiRows, colWidths: [10, 30, 18] },
+        { name: 'Neraca', rows: neracaRows, colWidths: [10, 30, 18] },
+      ]);
+    }
+
+    /* ========== EXPORT PERSEDIAAN ========== */
+    function exportPersediaan() {
+      const bahan = getBahan();
+      const produk = getProduk();
+      const spk = getSPK();
+
+      const bahanRows = [
+        [`Stok Bahan Baku - ${namaUsaha()}`], [],
+        ['Kode', 'Nama', 'Kategori', 'Stok', 'Harga', 'Nilai Total'],
+        ...bahan.map(b => [b.kode, b.nama, b.kategori || '', b.stok, b.harga, Number(b.stok) * Number(b.harga)]),
+      ];
+      bahanRows.push([]);
+      bahanRows.push(['', '', '', '', 'TOTAL', bahan.reduce((s, b) => s + Number(b.stok) * Number(b.harga), 0)]);
+
+      const produkRows = [
+        [`Stok Barang Jadi - ${namaUsaha()}`], [],
+        ['Kode', 'Nama', 'Stok', 'Harga Pokok', 'Nilai Total', 'Harga Jual'],
+        ...produk.map(p => [p.kode, p.nama, p.stok, p.hargaPokok, Number(p.stok) * Number(p.hargaPokok), p.hargaJual]),
+      ];
+      produkRows.push([]);
+      produkRows.push(['', '', '', 'TOTAL', produk.reduce((s, p) => s + Number(p.stok) * Number(p.hargaPokok), 0), '']);
+
+      const pakai = getPakai(), btkl = getBTKL(), bop = getBOP();
+      const bdpRows = [
+        [`Nilai BDP (SPK Berjalan) - ${namaUsaha()}`], [],
+        ['No SPK', 'BBB', 'BTKL', 'BOP', 'Total BDP'],
+      ];
+      let totalBDP = 0;
+      spk.filter(s => s.status === 'Berjalan').forEach(s => {
+        const bbb = pakai.filter(p => p.spkId === s.id).reduce((x, p) => x + p.totalNilai, 0);
+        const b = btkl.filter(x => x.spkId === s.id).reduce((x, y) => x + y.totalNilai, 0);
+        const o = bop.filter(x => x.spkId === s.id).reduce((x, y) => x + y.totalNilai, 0);
+        totalBDP += bbb + b + o;
+        bdpRows.push([s.noSPK, bbb, b, o, bbb + b + o]);
+      });
+      bdpRows.push([]);
+      bdpRows.push(['', '', '', 'TOTAL BDP', totalBDP]);
+
+      exportToExcel(`Persediaan-${namaUsaha()}.xlsx`, [
+        { name: 'Bahan Baku', rows: bahanRows, colWidths: [12, 28, 16, 12, 16, 16] },
+        { name: 'Barang Jadi', rows: produkRows, colWidths: [12, 28, 12, 16, 16, 16] },
+        { name: 'BDP Berjalan', rows: bdpRows, colWidths: [14, 16, 16, 16, 16] },
+      ]);
+    }
+  </script>
+</body>
+</html>
