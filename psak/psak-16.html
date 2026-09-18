@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PSAK 16 — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span class="current">PSAK 16</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🏭 PSAK 16 — Aset Tetap</h1>
+      <p class="subtitle">
+        Register mesin, bangunan, dan aset tetap lain, beserta perhitungan
+        penyusutan metode garis lurus dan nilai buku berjalan.
+      </p>
+    </section>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Aset Tetap</h2>
+
+      <form id="formAset" autocomplete="off">
+        <input type="hidden" id="asetId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="kode">Kode <span class="required">*</span></label>
+            <input type="text" id="kode" class="form-control" placeholder="AT-0001" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nama">Nama Aset <span class="required">*</span></label>
+            <input type="text" id="nama" class="form-control" placeholder="Contoh: Mesin Cetak Otomatis" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="akunAset">Akun Aset</label>
+            <select id="akunAset" class="form-select"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="akunAkumulasi">Akun Akumulasi Penyusutan</label>
+            <select id="akunAkumulasi" class="form-select"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tglPerolehan">Tanggal Perolehan</label>
+            <input type="date" id="tglPerolehan" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="nilaiPerolehan">Nilai Perolehan (Rp) <span class="required">*</span></label>
+            <input type="number" id="nilaiPerolehan" class="form-control" min="0" step="any" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nilaiResidu">Nilai Residu (Rp)</label>
+            <input type="number" id="nilaiResidu" class="form-control" min="0" step="any" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="umurManfaat">Umur Manfaat (tahun) <span class="required">*</span></label>
+            <input type="number" id="umurManfaat" class="form-control" min="1" step="1" required />
+          </div>
+        </div>
+
+        <div class="alert alert-info">
+          💡 Metode <strong>Garis Lurus</strong>: Beban Penyusutan/Tahun = (Nilai Perolehan − Nilai Residu) ÷ Umur Manfaat.
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 <span id="btnSubmitText">Simpan Aset Tetap</span></button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== DAFTAR ASET ===== -->
+    <div id="daftarAset"></div>
+
+    <!-- ===== RIWAYAT PENYUSUTAN ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Riwayat Penyusutan Tercatat</h2>
+        <span class="badge badge-primary" id="totalRiwayat">0 catatan</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead><tr><th style="width:110px;">Tanggal</th><th>Aset</th><th class="text-right" style="width:150px;">Nominal</th></tr></thead>
+          <tbody id="tabelRiwayat"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    const KEY = 'aset_tetap';
+    const KEY_PENYUSUTAN = 'penyusutan';
+    let editingId = null;
+
+    function getAset() { return Store.get(KEY, []) || []; }
+    function setAset(list) { Store.set(KEY, list); }
+    function getPenyusutan() { return Store.get(KEY_PENYUSUTAN, []) || []; }
+    function setPenyusutan(list) { Store.set(KEY_PENYUSUTAN, list); }
+    function getCOA() { return Store.get('chart_of_accounts', []) || []; }
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+    function setJurnal(list) { Store.set('jurnal', list); }
+
+    function isiDropdownAkun() {
+      const coa = getCOA().filter(a => a.tipe === 'Aset');
+      const asetOpsi = coa.filter(a => a.saldoNormal === 'Debit').map(a => `<option value="${a.kode}">${esc(a.kode)} — ${esc(a.nama)}</option>`).join('');
+      const akumulasiOpsi = coa.filter(a => a.saldoNormal === 'Kredit').map(a => `<option value="${a.kode}">${esc(a.kode)} — ${esc(a.nama)}</option>`).join('');
+      document.getElementById('akunAset').innerHTML = asetOpsi;
+      document.getElementById('akunAkumulasi').innerHTML = akumulasiOpsi;
+    }
+
+    function hitungPenyusutanTahunan(aset) {
+      return (aset.nilaiPerolehan - aset.nilaiResidu) / aset.umurManfaat;
+    }
+    function totalPenyusutanTercatat(asetId) {
+      return getPenyusutan().filter(p => p.asetId === asetId).reduce((s, p) => s + p.nominal, 0);
+    }
+    function nilaiBuku(aset) {
+      return aset.nilaiPerolehan - totalPenyusutanTercatat(aset.id);
+    }
+
+    document.getElementById('formAset').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const kode = document.getElementById('kode').value.trim();
+      const nilaiPerolehan = Number(document.getElementById('nilaiPerolehan').value) || 0;
+      const nilaiResidu = Number(document.getElementById('nilaiResidu').value) || 0;
+      const umurManfaat = Number(document.getElementById('umurManfaat').value) || 0;
+
+      if (nilaiResidu >= nilaiPerolehan) { notify('❌ Nilai residu harus lebih kecil dari nilai perolehan', 'danger'); return; }
+      if (umurManfaat <= 0) { notify('❌ Umur manfaat harus > 0', 'danger'); return; }
+
+      const list = getAset();
+      const dup = list.find(a => a.kode === kode && a.id !== editingId);
+      if (dup) { notify('❌ Kode aset sudah dipakai', 'danger'); return; }
+
+      const akunAsetSel = document.getElementById('akunAset');
+      const akunAkumulasiSel = document.getElementById('akunAkumulasi');
+      const coa = getCOA();
+
+      const data = {
+        id: editingId || IDGen.generate('AT'),
+        kode, nama: document.getElementById('nama').value.trim(),
+        akunAsetKode: akunAsetSel.value, akunAsetNama: coa.find(a => a.kode === akunAsetSel.value)?.nama || '',
+        akunAkumulasiKode: akunAkumulasiSel.value, akunAkumulasiNama: coa.find(a => a.kode === akunAkumulasiSel.value)?.nama || '',
+        tglPerolehan: document.getElementById('tglPerolehan').value || Fmt.today(),
+        nilaiPerolehan, nilaiResidu, umurManfaat,
+      };
+
+      if (editingId) {
+        const idx = list.findIndex(a => a.id === editingId);
+        list[idx] = { ...list[idx], ...data };
+        notify('✅ Aset tetap diperbarui', 'success');
+      } else {
+        data.createdAt = new Date().toISOString();
+        list.push(data);
+        notify('✅ Aset tetap disimpan', 'success');
+      }
+
+      setAset(list);
+      resetForm();
+      renderAset();
+    });
+
+    function editAset(id) {
+      const a = getAset().find(x => x.id === id);
+      if (!a) return;
+      editingId = id;
+      document.getElementById('asetId').value = id;
+      document.getElementById('kode').value = a.kode;
+      document.getElementById('nama').value = a.nama;
+      document.getElementById('akunAset').value = a.akunAsetKode;
+      document.getElementById('akunAkumulasi').value = a.akunAkumulasiKode;
+      document.getElementById('tglPerolehan').value = a.tglPerolehan;
+      document.getElementById('nilaiPerolehan').value = a.nilaiPerolehan;
+      document.getElementById('nilaiResidu').value = a.nilaiResidu;
+      document.getElementById('umurManfaat').value = a.umurManfaat;
+      document.getElementById('formTitle').textContent = '✏️ Edit Aset Tetap';
+      document.getElementById('btnSubmitText').textContent = 'Update Aset Tetap';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hapusAset(id) {
+      if (!confirm('Hapus aset tetap ini beserta seluruh riwayat penyusutannya? Jurnal terkait juga akan dihapus.')) return;
+      setAset(getAset().filter(a => a.id !== id));
+      const penyusutanTerhapus = getPenyusutan().filter(p => p.asetId === id).map(p => p.id);
+      setPenyusutan(getPenyusutan().filter(p => p.asetId !== id));
+      setJurnal(getJurnal().filter(j => !(j.source === 'jurnal_penyesuaian' && j.sourceId && penyusutanTerhapus.includes(j.sourceId))));
+      notify('🗑️ Aset tetap dihapus', 'warning');
+      renderAset();
+    }
+
+    function catatPenyusutan(asetId) {
+      const aset = getAset().find(a => a.id === asetId);
+      if (!aset) return;
+
+      const tahunan = hitungPenyusutanTahunan(aset);
+      const bulanan = tahunan / 12;
+      const sudahDisusutkan = totalPenyusutanTercatat(asetId);
+      const maksBisaDisusutkan = aset.nilaiPerolehan - aset.nilaiResidu - sudahDisusutkan;
+
+      if (maksBisaDisusutkan <= 0.01) { alert('Aset ini sudah disusutkan penuh sampai nilai residu.'); return; }
+
+      const input = prompt(`Nominal penyusutan yang mau dicatat (Rp):\n\nSaran: penyusutan bulanan = ${Fmt.rupiah(bulanan)}\nMaksimal bisa dicatat: ${Fmt.rupiah(maksBisaDisusutkan)}`, Math.round(Math.min(bulanan, maksBisaDisusutkan)));
+      if (input === null) return;
+
+      let nominal = Number(input);
+      if (isNaN(nominal) || nominal <= 0) { alert('Nominal harus angka > 0'); return; }
+      if (nominal > maksBisaDisusutkan) {
+        if (!confirm(`Nominal melebihi sisa yang bisa disusutkan (${Fmt.rupiah(maksBisaDisusutkan)}). Pakai nilai maksimal itu saja?`)) return;
+        nominal = maksBisaDisusutkan;
+      }
+
+      const rec = { id: IDGen.generate('PNY'), asetId, tanggal: Fmt.today(), nominal, createdAt: new Date().toISOString() };
+      const list = getPenyusutan();
+      list.push(rec);
+      setPenyusutan(list);
+
+      // Jurnal PENYESUAIAN: Debit Beban Penyusutan / Kredit Akumulasi Penyusutan
+      const jurnalList = getJurnal();
+      jurnalList.push({
+        id: IDGen.generate('JRN'),
+        tanggal: rec.tanggal,
+        ref: aset.kode,
+        keterangan: `Penyusutan ${aset.kode} — ${aset.nama}`,
+        source: 'jurnal_penyesuaian',
+        sourceId: rec.id,
+        detail: [
+          { kode: '5104', nama: 'Beban Penyusutan', debit: nominal, kredit: 0 },
+          { kode: aset.akunAkumulasiKode, nama: aset.akunAkumulasiNama, debit: 0, kredit: nominal },
+        ],
+        createdAt: new Date().toISOString(),
+      });
+      setJurnal(jurnalList);
+
+      notify(`✅ Penyusutan ${Fmt.rupiah(nominal)} dicatat untuk ${aset.nama}`, 'success');
+      renderAset();
+      renderRiwayat();
+    }
+
+    function resetForm() {
+      editingId = null;
+      document.getElementById('formAset').reset();
+      document.getElementById('asetId').value = '';
+      document.getElementById('tglPerolehan').value = Fmt.today();
+      document.getElementById('formTitle').textContent = '➕ Tambah Aset Tetap';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Aset Tetap';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    function renderAset() {
+      const list = getAset();
+      const container = document.getElementById('daftarAset');
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="card"><div class="empty">Belum ada aset tetap.</div></div>`;
+        return;
+      }
+
+      container.innerHTML = `
+        <section class="card">
+          <h2 class="card-title">📋 Daftar Aset Tetap</h2>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Kode</th><th>Nama</th>
+                  <th class="text-right" style="width:130px;">Perolehan</th>
+                  <th class="text-right" style="width:120px;">Penyusutan/Thn</th>
+                  <th class="text-right" style="width:130px;">Akumulasi</th>
+                  <th class="text-right" style="width:130px;">Nilai Buku</th>
+                  <th class="text-center" style="width:170px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${list.map(a => {
+                  const tahunan = hitungPenyusutanTahunan(a);
+                  const akumulasi = totalPenyusutanTercatat(a.id);
+                  const buku = nilaiBuku(a);
+                  return `
+                    <tr>
+                      <td><strong>${esc(a.kode)}</strong></td>
+                      <td>${esc(a.nama)}</td>
+                      <td class="text-right">${Fmt.rupiah(a.nilaiPerolehan)}</td>
+                      <td class="text-right">${Fmt.rupiah(tahunan)}</td>
+                      <td class="text-right">${Fmt.rupiah(akumulasi)}</td>
+                      <td class="text-right"><strong>${Fmt.rupiah(buku)}</strong></td>
+                      <td class="text-center">
+                        <button class="btn btn-sm btn-primary" onclick="catatPenyusutan('${a.id}')">🔧 Susutkan</button>
+                        <button class="btn btn-sm btn-outline" onclick="editAset('${a.id}')">✏️</button>
+                        <button class="btn btn-sm btn-danger" onclick="hapusAset('${a.id}')">🗑️</button>
+                      </td>
+                    </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </section>`;
+    }
+
+    function renderRiwayat() {
+      const aset = getAset();
+      const list = getPenyusutan().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const tbody = document.getElementById('tabelRiwayat');
+      document.getElementById('totalRiwayat').textContent = `${list.length} catatan`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="table-empty">Belum ada penyusutan tercatat.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => {
+        const a = aset.find(x => x.id === p.asetId);
+        return `<tr><td>${Fmt.tanggal(p.tanggal)}</td><td>${a ? esc(a.kode) + ' — ' + esc(a.nama) : '?'}</td><td class="text-right">${Fmt.rupiah(p.nominal)}</td></tr>`;
+      }).join('');
+    }
+
+    isiDropdownAkun();
+    document.getElementById('tglPerolehan').value = Fmt.today();
+    renderAset();
+    renderRiwayat();
+  </script>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PSAK 115 — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span class="current">PSAK 115</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📑 PSAK 115 — Pendapatan dari Kontrak dengan Pelanggan</h1>
+      <p class="subtitle">
+        Untuk kontrak jangka panjang (misal proyek custom manufacturing)
+        yang pendapatannya diakui <strong>bertahap sesuai persentase
+        penyelesaian</strong>, bukan sekaligus saat barang jadi dikirim.
+      </p>
+    </section>
+
+    <div id="alertPrasyarat"></div>
+
+    <!-- ===== FORM KONTRAK ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Kontrak</h2>
+
+      <form id="formKontrak" autocomplete="off">
+        <input type="hidden" id="kontrakId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="customerId">Customer <span class="required">*</span></label>
+            <select id="customerId" class="form-select" required>
+              <option value="">— Pilih Customer —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="namaKontrak">Nama Kontrak / Proyek <span class="required">*</span></label>
+            <input type="text" id="namaKontrak" class="form-control" placeholder="Contoh: Proyek Mesin Custom PT Maju" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="nilaiTotal">Nilai Total Kontrak (Rp) <span class="required">*</span></label>
+            <input type="number" id="nilaiTotal" class="form-control" min="0" step="any" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="akunPendapatan">Akun Pendapatan</label>
+            <select id="akunPendapatan" class="form-select"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="akunPiutang">Akun Piutang / Aset Kontrak</label>
+            <select id="akunPiutang" class="form-select"></select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 <span id="btnSubmitText">Simpan Kontrak</span></button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <div id="daftarKontrak"></div>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    const KEY_KONTRAK = 'psak115_kontrak';
+    const KEY_PENGAKUAN = 'psak115_pengakuan';
+    let editingId = null;
+
+    function getKontrak() { return Store.get(KEY_KONTRAK, []) || []; }
+    function setKontrak(list) { Store.set(KEY_KONTRAK, list); }
+    function getPengakuan() { return Store.get(KEY_PENGAKUAN, []) || []; }
+    function setPengakuan(list) { Store.set(KEY_PENGAKUAN, list); }
+    function getCustomer() { return Store.get('customer', []) || []; }
+    function getCOA() { return Store.get('chart_of_accounts', []) || []; }
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+    function setJurnal(list) { Store.set('jurnal', list); }
+
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      if (getCustomer().length === 0) {
+        box.innerHTML = `<div class="alert alert-warning">⚠️ <div><strong>Belum ada Customer.</strong> Buat dulu di <a href="../master-data/customer.html">Master Data → Customer</a>.</div></div>`;
+        return;
+      }
+      box.innerHTML = '';
+    }
+
+    function isiDropdown() {
+      const customer = getCustomer();
+      document.getElementById('customerId').innerHTML = '<option value="">— Pilih Customer —</option>' +
+        customer.map(c => `<option value="${c.id}">${esc(c.kode)} — ${esc(c.nama)}</option>`).join('');
+
+      const coa = getCOA();
+      const pendapatan = coa.filter(a => a.tipe === 'Pendapatan');
+      const aset = coa.filter(a => a.tipe === 'Aset');
+      document.getElementById('akunPendapatan').innerHTML = pendapatan.map(a => `<option value="${a.kode}">${esc(a.kode)} — ${esc(a.nama)}</option>`).join('');
+      document.getElementById('akunPiutang').innerHTML = aset.map(a => `<option value="${a.kode}">${esc(a.kode)} — ${esc(a.nama)}</option>`).join('');
+    }
+
+    function getRecognizedTotal(kontrakId) {
+      return getPengakuan().filter(p => p.kontrakId === kontrakId).reduce((s, p) => s + p.jumlah, 0);
+    }
+
+    document.getElementById('formKontrak').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const customerId = document.getElementById('customerId').value;
+      const namaKontrak = document.getElementById('namaKontrak').value.trim();
+      const nilaiTotal = Number(document.getElementById('nilaiTotal').value) || 0;
+      const akunPendapatanKode = document.getElementById('akunPendapatan').value;
+      const akunPiutangKode = document.getElementById('akunPiutang').value;
+
+      if (!customerId || !namaKontrak || nilaiTotal <= 0) { notify('❌ Lengkapi semua data', 'danger'); return; }
+
+      const customer = getCustomer().find(c => c.id === customerId);
+      const coa = getCOA();
+      const akunPendapatan = coa.find(a => a.kode === akunPendapatanKode);
+      const akunPiutang = coa.find(a => a.kode === akunPiutangKode);
+
+      const list = getKontrak();
+
+      if (editingId) {
+        const idx = list.findIndex(k => k.id === editingId);
+        if (idx >= 0) list[idx] = { ...list[idx], customerId, customerNama: customer.nama, namaKontrak, nilaiTotal, akunPendapatanKode, akunPendapatanNama: akunPendapatan.nama, akunPiutangKode, akunPiutangNama: akunPiutang.nama };
+        notify('✅ Kontrak diperbarui', 'success');
+      } else {
+        list.push({
+          id: IDGen.generate('KTR'), customerId, customerNama: customer.nama, namaKontrak, nilaiTotal,
+          akunPendapatanKode, akunPendapatanNama: akunPendapatan.nama, akunPiutangKode, akunPiutangNama: akunPiutang.nama,
+          createdAt: new Date().toISOString(),
+        });
+        notify('✅ Kontrak disimpan', 'success');
+      }
+
+      setKontrak(list);
+      resetForm();
+      renderKontrak();
+    });
+
+    function editKontrak(id) {
+      const k = getKontrak().find(x => x.id === id);
+      if (!k) return;
+      editingId = id;
+      document.getElementById('kontrakId').value = id;
+      document.getElementById('customerId').value = k.customerId;
+      document.getElementById('namaKontrak').value = k.namaKontrak;
+      document.getElementById('nilaiTotal').value = k.nilaiTotal;
+      document.getElementById('akunPendapatan').value = k.akunPendapatanKode;
+      document.getElementById('akunPiutang').value = k.akunPiutangKode;
+      document.getElementById('formTitle').textContent = '✏️ Edit Kontrak';
+      document.getElementById('btnSubmitText').textContent = 'Update Kontrak';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hapusKontrak(id) {
+      if (!confirm('Hapus kontrak ini beserta seluruh riwayat pengakuan pendapatannya? Jurnal terkait juga akan dihapus.')) return;
+      setKontrak(getKontrak().filter(k => k.id !== id));
+      const pengakuanTerhapus = getPengakuan().filter(p => p.kontrakId === id).map(p => p.id);
+      setPengakuan(getPengakuan().filter(p => p.kontrakId !== id));
+      setJurnal(getJurnal().filter(j => !(j.source === 'psak115' && pengakuanTerhapus.includes(j.sourceId))));
+      notify('🗑️ Kontrak dihapus', 'warning');
+      renderKontrak();
+    }
+
+    function akuiPendapatan(kontrakId) {
+      const kontrak = getKontrak().find(k => k.id === kontrakId);
+      if (!kontrak) return;
+
+      const sudahDiakui = getRecognizedTotal(kontrakId);
+      const pctSekarang = (sudahDiakui / kontrak.nilaiTotal) * 100;
+
+      const input = prompt(
+        `Progres saat ini: ${pctSekarang.toFixed(1)}% (${Fmt.rupiah(sudahDiakui)} dari ${Fmt.rupiah(kontrak.nilaiTotal)}).\n\nMasukkan persentase penyelesaian KUMULATIF baru (contoh: 40):`,
+        Math.min(100, Math.ceil(pctSekarang + 10))
+      );
+      if (input === null) return;
+
+      const pctBaru = Number(input);
+      if (isNaN(pctBaru) || pctBaru <= pctSekarang || pctBaru > 100) {
+        alert(`Persentase harus angka lebih besar dari ${pctSekarang.toFixed(1)} dan maksimal 100.`);
+        return;
+      }
+
+      const nilaiKumulatifBaru = kontrak.nilaiTotal * (pctBaru / 100);
+      const jumlah = nilaiKumulatifBaru - sudahDiakui;
+      if (jumlah <= 0.01) { alert('Tidak ada kenaikan progres untuk diakui.'); return; }
+
+      const rec = { id: IDGen.generate('PENGAKUAN'), kontrakId, tanggal: Fmt.today(), persentase: ((jumlah / kontrak.nilaiTotal) * 100).toFixed(2), jumlah, createdAt: new Date().toISOString() };
+      const list = getPengakuan();
+      list.push(rec);
+      setPengakuan(list);
+
+      // Jurnal operasional (BUKAN penyesuaian): Debit Piutang/Aset Kontrak / Kredit Pendapatan
+      const jurnalList = getJurnal();
+      jurnalList.push({
+        id: IDGen.generate('JRN'),
+        tanggal: rec.tanggal,
+        ref: kontrak.namaKontrak,
+        keterangan: `Pengakuan pendapatan ${rec.persentase}% — ${kontrak.namaKontrak}`,
+        source: 'psak115',
+        sourceId: rec.id,
+        detail: [
+          { kode: kontrak.akunPiutangKode, nama: kontrak.akunPiutangNama, debit: jumlah, kredit: 0 },
+          { kode: kontrak.akunPendapatanKode, nama: kontrak.akunPendapatanNama, debit: 0, kredit: jumlah },
+        ],
+        createdAt: new Date().toISOString(),
+      });
+      setJurnal(jurnalList);
+
+      alert(`Berhasil mengakui pendapatan ${Fmt.rupiah(jumlah)} (progres kumulatif jadi ${pctBaru}%).`);
+      renderKontrak();
+    }
+
+    function resetForm() {
+      editingId = null;
+      document.getElementById('formKontrak').reset();
+      document.getElementById('kontrakId').value = '';
+      document.getElementById('formTitle').textContent = '➕ Tambah Kontrak';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Kontrak';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    function renderKontrak() {
+      const kontrak = getKontrak();
+      const container = document.getElementById('daftarKontrak');
+
+      if (kontrak.length === 0) {
+        container.innerHTML = `<div class="card"><div class="empty">Belum ada kontrak PSAK 115.</div></div>`;
+        return;
+      }
+
+      container.innerHTML = kontrak.map(k => {
+        const recognized = getRecognizedTotal(k.id);
+        const pct = Math.min(100, (recognized / k.nilaiTotal) * 100);
+        const remaining = k.nilaiTotal - recognized;
+        const history = getPengakuan().filter(p => p.kontrakId === k.id).sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+
+        const rows = history.length === 0
+          ? `<tr><td colspan="3" class="table-empty">Belum ada pengakuan pendapatan.</td></tr>`
+          : history.map(p => `<tr><td>${Fmt.tanggal(p.tanggal)}</td><td>+${p.persentase}%</td><td class="text-right">${Fmt.rupiah(p.jumlah)}</td></tr>`).join('');
+
+        return `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="flex-between mb-16">
+              <div>
+                <h3 style="color:var(--primary); margin-bottom:4px;">${esc(k.namaKontrak)}</h3>
+                <div class="text-muted" style="font-size:0.85rem;">
+                  ${esc(k.customerNama)} | Nilai: ${Fmt.rupiah(k.nilaiTotal)} |
+                  ${esc(k.akunPendapatanKode)} / ${esc(k.akunPiutangKode)}
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:1.4rem; font-weight:700; color:var(--primary);">${pct.toFixed(1)}%</div>
+              </div>
+            </div>
+
+            <div class="summary-grid" style="display:flex; gap:16px; margin-bottom:14px;">
+              <div style="flex:1; background:#f0fdf4; padding:10px; border-radius:8px;">
+                <div class="text-muted" style="font-size:0.8rem;">Sudah Diakui</div>
+                <strong style="color:#15803d;">${Fmt.rupiah(recognized)}</strong>
+              </div>
+              <div style="flex:1; background:#f8fafc; padding:10px; border-radius:8px;">
+                <div class="text-muted" style="font-size:0.8rem;">Sisa Belum Diakui</div>
+                <strong>${Fmt.rupiah(remaining)}</strong>
+              </div>
+            </div>
+
+            <div class="actions-row mb-16">
+              <button class="btn btn-sm btn-primary" onclick="akuiPendapatan('${k.id}')" ${pct >= 100 ? 'disabled' : ''}>${pct >= 100 ? '✅ Selesai 100%' : '📈 Akui Pendapatan'}</button>
+              <button class="btn btn-sm btn-outline" onclick="editKontrak('${k.id}')">✏️ Edit</button>
+              <button class="btn btn-sm btn-danger" onclick="hapusKontrak('${k.id}')">🗑️ Hapus</button>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="table"><thead><tr><th style="width:120px;">Tanggal</th><th style="width:100px;">Kenaikan</th><th class="text-right" style="width:150px;">Jumlah</th></tr></thead><tbody>${rows}</tbody></table>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    isiDropdown();
+    renderKontrak();
+    cekPrasyarat();
+  </script>
+</body>
+</html>
