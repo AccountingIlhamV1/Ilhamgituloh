@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Order — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Penjualan</a>
+        <span>/</span>
+        <span class="current">Sales Order</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📋 Sales Order</h1>
+      <p class="subtitle">
+        Pesanan dari customer untuk barang jadi. Halaman ini murni dokumen
+        pesanan — stok &amp; jurnal baru berubah saat
+        <a href="faktur-penjualan.html">Faktur Penjualan</a> (pengiriman + penagihan) dibuat.
+      </p>
+    </section>
+
+    <div id="alertPrasyarat"></div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title">➕ Buat Sales Order</h2>
+
+      <form id="formSO" autocomplete="off">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="customerId">Customer <span class="required">*</span></label>
+            <select id="customerId" class="form-select" required>
+              <option value="">— Pilih Customer —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tglSO">Tanggal Order</label>
+            <input type="date" id="tglSO" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tglKirim">Target Kirim</label>
+            <input type="date" id="tglKirim" class="form-control" />
+          </div>
+        </div>
+
+        <div class="flex-between mb-16" style="margin-top:16px;">
+          <h3 style="font-size:1rem; font-weight:700;">📦 Item Barang Jadi</h3>
+          <button type="button" class="btn btn-sm btn-accent" id="btnTambahBaris">➕ Tambah Item</button>
+        </div>
+
+        <div class="table-wrapper mb-16">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Produk</th>
+                <th style="width:120px;">Qty Pesan</th>
+                <th style="width:110px;" class="text-right">Stok Saat Ini</th>
+                <th style="width:150px;" class="text-right">Harga Jual</th>
+                <th style="width:150px;" class="text-right">Subtotal</th>
+                <th style="width:70px;" class="text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelBaris"></tbody>
+            <tfoot>
+              <tr style="background:var(--primary-light); font-weight:700;">
+                <td colspan="4" class="text-right">TOTAL NILAI ORDER</td>
+                <td class="text-right" id="totalSO">Rp 0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="catatan">Catatan</label>
+          <input type="text" id="catatan" class="form-control" placeholder="Opsional" />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 Simpan Sales Order</button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== DAFTAR ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Sales Order</h2>
+        <span class="badge badge-primary" id="totalRiwayat">0 SO</span>
+      </div>
+      <div id="daftarSO"></div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    const KEY = 'sales_order';
+    let baris = [];
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+    function getCustomer() { return Store.get('customer', []) || []; }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      if (getCustomer().length === 0) {
+        box.innerHTML = `<div class="alert alert-warning">⚠️ <div><strong>Belum ada Customer.</strong> Buat dulu di <a href="../master-data/customer.html">Master Data → Customer</a>.</div></div>`;
+        return;
+      }
+      if (getProduk().length === 0) {
+        box.innerHTML = `<div class="alert alert-warning">⚠️ <div><strong>Belum ada Produk Jadi.</strong> Buat dulu di <a href="../master-data/produk-jadi.html">Master Data → Produk Jadi</a>.</div></div>`;
+        return;
+      }
+      box.innerHTML = '';
+    }
+
+    function isiDropdownCustomer() {
+      const sel = document.getElementById('customerId');
+      sel.innerHTML = '<option value="">— Pilih Customer —</option>' +
+        getCustomer().map(c => `<option value="${c.id}">${esc(c.kode)} — ${esc(c.nama)}</option>`).join('');
+    }
+
+    function renderBaris() {
+      const tbody = document.getElementById('tabelBaris');
+      const produk = getProduk();
+
+      if (baris.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Klik "Tambah Item" untuk mulai.</td></tr>`;
+        document.getElementById('totalSO').textContent = 'Rp 0';
+        return;
+      }
+
+      let total = 0;
+
+      tbody.innerHTML = baris.map((b, i) => {
+        const p = produk.find(x => x.id === b.produkId);
+        const subtotal = b.qty * b.harga;
+        total += subtotal;
+        const stokKurang = p && b.qty > Number(p.stok);
+
+        return `
+          <tr>
+            <td>
+              <select class="form-select" onchange="ubahBaris(${i}, 'produkId', this.value)">
+                ${produk.map(x => `<option value="${x.id}" ${x.id === b.produkId ? 'selected' : ''}>${esc(x.kode)} — ${esc(x.nama)}</option>`).join('')}
+              </select>
+            </td>
+            <td>
+              <input type="number" class="form-control" min="0" step="any" value="${b.qty}" onchange="ubahBaris(${i}, 'qty', this.value)" />
+              ${stokKurang ? `<div class="form-hint" style="color:var(--danger);">⚠️ Stok kurang</div>` : ''}
+            </td>
+            <td class="text-right">${Fmt.angka(p ? p.stok : 0)} ${p ? esc(p.satuan) : ''}</td>
+            <td><input type="number" class="form-control" min="0" step="any" value="${b.harga}" onchange="ubahBaris(${i}, 'harga', this.value)" /></td>
+            <td class="text-right"><strong>${Fmt.rupiah(subtotal)}</strong></td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-danger" onclick="hapusBaris(${i})">🗑️</button></td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('totalSO').textContent = Fmt.rupiah(total);
+    }
+
+    function ubahBaris(i, field, val) {
+      if (field === 'produkId') {
+        baris[i].produkId = val;
+        const p = getProduk().find(x => x.id === val);
+        baris[i].harga = p ? Number(p.hargaJual) : 0;
+      } else {
+        baris[i][field] = Number(val) || 0;
+      }
+      renderBaris();
+    }
+    function hapusBaris(i) { baris.splice(i, 1); renderBaris(); }
+
+    document.getElementById('btnTambahBaris').addEventListener('click', function () {
+      const produk = getProduk();
+      if (produk.length === 0) { notify('❌ Belum ada produk jadi', 'danger'); return; }
+      baris.push({ produkId: produk[0].id, qty: 1, harga: Number(produk[0].hargaJual) || 0 });
+      renderBaris();
+    });
+
+    document.getElementById('formSO').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const customerId = document.getElementById('customerId').value;
+      if (!customerId) { notify('❌ Pilih customer dulu', 'danger'); return; }
+      if (baris.length === 0) { notify('❌ Tambah minimal 1 item', 'danger'); return; }
+      if (baris.some(b => b.qty <= 0)) { notify('❌ Qty pesan harus > 0', 'danger'); return; }
+
+      const customer = getCustomer().find(c => c.id === customerId);
+      const produk = getProduk();
+      const items = baris.map(b => {
+        const p = produk.find(x => x.id === b.produkId);
+        return { produkId: b.produkId, kode: p ? p.kode : '?', nama: p ? p.nama : '?', satuan: p ? p.satuan : '', qtyPesan: b.qty, hargaJual: b.harga, subtotal: b.qty * b.harga };
+      });
+      const totalNilai = items.reduce((s, it) => s + it.subtotal, 0);
+
+      const list = getDaftar();
+      const data = {
+        id: IDGen.generate('SO'),
+        noSO: 'SO-' + String(list.length + 1).padStart(4, '0'),
+        customerId,
+        customerNama: customer.nama,
+        tglSO: document.getElementById('tglSO').value || Fmt.today(),
+        tglKirim: document.getElementById('tglKirim').value || '',
+        items,
+        totalNilai,
+        status: 'Dikirim',
+        catatan: document.getElementById('catatan').value.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      list.push(data);
+      setDaftar(list);
+
+      notify(`✅ ${data.noSO} dibuat — ${Fmt.rupiah(totalNilai)}`, 'success');
+      resetForm();
+      renderRiwayat();
+      cekPrasyarat();
+    });
+
+    function badgeStatus(status) {
+      const map = { 'Dikirim': 'badge-warning', 'Dikirim Sebagian': 'badge-primary', 'Selesai': 'badge-success' };
+      return `<span class="badge ${map[status] || 'badge-muted'}">${esc(status)}</span>`;
+    }
+
+    function renderRiwayat() {
+      const list = getDaftar().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const container = document.getElementById('daftarSO');
+      document.getElementById('totalRiwayat').textContent = `${list.length} SO`;
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="alert alert-info">Belum ada Sales Order.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(so => {
+        const rows = so.items.map(it => `
+          <tr><td>${esc(it.kode)} — ${esc(it.nama)}</td><td class="text-right">${Fmt.angka(it.qtyPesan)} ${esc(it.satuan)}</td><td class="text-right">${Fmt.rupiah(it.hargaJual)}</td><td class="text-right">${Fmt.rupiah(it.subtotal)}</td></tr>
+        `).join('');
+
+        return `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="flex-between mb-16">
+              <div>
+                <h3 style="color:var(--primary); margin-bottom:4px;">📋 ${esc(so.noSO)} — ${esc(so.customerNama)}</h3>
+                <div class="text-muted" style="font-size:0.88rem;">
+                  Tanggal: <strong>${Fmt.tanggal(so.tglSO)}</strong>
+                  ${so.tglKirim ? ` | Target Kirim: <strong>${Fmt.tanggal(so.tglKirim)}</strong>` : ''}
+                  | Total: <strong>${Fmt.rupiah(so.totalNilai)}</strong> | ${badgeStatus(so.status)}
+                </div>
+              </div>
+              ${so.status === 'Dikirim' ? `<button class="btn btn-sm btn-danger" onclick="hapusSO('${so.id}')">🗑️ Hapus</button>` : ''}
+            </div>
+            <div class="table-wrapper"><table class="table"><thead><tr><th>Produk</th><th class="text-right" style="width:120px;">Qty</th><th class="text-right" style="width:140px;">Harga</th><th class="text-right" style="width:140px;">Subtotal</th></tr></thead><tbody>${rows}</tbody></table></div>
+          </div>`;
+      }).join('');
+    }
+
+    function hapusSO(id) {
+      const so = getDaftar().find(x => x.id === id);
+      if (!so) return;
+      if (so.status !== 'Dikirim') { notify('❌ SO yang sudah ada pengiriman tidak bisa dihapus', 'danger'); return; }
+      if (!confirm(`Hapus ${so.noSO}?`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ SO dihapus', 'warning');
+      renderRiwayat();
+    }
+
+    function resetForm() {
+      document.getElementById('formSO').reset();
+      document.getElementById('tglSO').value = Fmt.today();
+      baris = [];
+      renderBaris();
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    isiDropdownCustomer();
+    document.getElementById('tglSO').value = Fmt.today();
+    renderBaris();
+    renderRiwayat();
+    cekPrasyarat();
+  </script>
+</body>
+</html>
