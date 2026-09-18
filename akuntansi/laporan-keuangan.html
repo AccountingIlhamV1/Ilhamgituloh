@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laporan Keuangan — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Akuntansi</a>
+        <span>/</span>
+        <span class="current">Laporan Keuangan</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📈 Laporan Keuangan</h1>
+      <p class="subtitle">
+        Versi final — sudah termasuk seluruh Jurnal Penyesuaian.
+      </p>
+    </section>
+
+    <!-- ===== LABA RUGI ===== -->
+    <section class="card">
+      <h2 class="card-title">📊 Laporan Laba Rugi</h2>
+
+      <div class="table-wrapper mb-16">
+        <table class="table">
+          <thead><tr><th>Akun</th><th class="text-right" style="width:180px;">Nilai</th></tr></thead>
+          <tbody id="tabelPendapatan"></tbody>
+          <tfoot><tr style="font-weight:700;"><td class="text-right">Total Pendapatan</td><td class="text-right" id="totalPendapatan">Rp 0</td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="table-wrapper mb-16">
+        <table class="table">
+          <thead><tr><th>Akun</th><th class="text-right" style="width:180px;">Nilai</th></tr></thead>
+          <tbody id="tabelBeban"></tbody>
+          <tfoot><tr style="font-weight:700;"><td class="text-right">Total Beban</td><td class="text-right" id="totalBeban">Rp 0</td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="summary-box" style="background:var(--primary-light); padding:16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:1.1rem;">
+        <span id="labelLabaRugi">Laba Bersih</span>
+        <span id="nilaiLabaRugi">Rp 0</span>
+      </div>
+    </section>
+
+    <!-- ===== NERACA ===== -->
+    <section class="card">
+      <h2 class="card-title">🏛️ Laporan Posisi Keuangan (Neraca)</h2>
+
+      <div class="table-wrapper mb-16">
+        <table class="table">
+          <thead><tr><th colspan="2">ASET</th></tr></thead>
+          <tbody id="tabelAset"></tbody>
+          <tfoot><tr style="font-weight:700;"><td class="text-right">Total Aset</td><td class="text-right" id="totalAset">Rp 0</td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="table-wrapper mb-16">
+        <table class="table">
+          <thead><tr><th colspan="2">LIABILITAS</th></tr></thead>
+          <tbody id="tabelLiabilitas"></tbody>
+          <tfoot><tr style="font-weight:700;"><td class="text-right">Total Liabilitas</td><td class="text-right" id="totalLiabilitas">Rp 0</td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="table-wrapper mb-16">
+        <table class="table">
+          <thead><tr><th colspan="2">EKUITAS</th></tr></thead>
+          <tbody id="tabelEkuitas"></tbody>
+          <tfoot>
+            <tr><td class="text-right">Laba (Rugi) Berjalan</td><td class="text-right" id="ekuitasLabaBerjalan">Rp 0</td></tr>
+            <tr style="font-weight:700;"><td class="text-right">Total Ekuitas</td><td class="text-right" id="totalEkuitas">Rp 0</td></tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div id="statusBalanceNeraca"></div>
+    </section>
+
+    <!-- ===== PERUBAHAN EKUITAS ===== -->
+    <section class="card">
+      <h2 class="card-title">💹 Laporan Perubahan Ekuitas</h2>
+      <p class="text-muted mb-16" style="font-size:0.88rem;">
+        Modal awal dianggap Rp0 karena sistem ini mencatat seluruh riwayat sebagai satu periode berjalan.
+      </p>
+      <div class="table-wrapper">
+        <table class="table">
+          <tbody id="tabelPerubahanEkuitas"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+    function getCOA() { return Store.get('chart_of_accounts', []) || []; }
+
+    // PENTING: saldo per akun dihitung pakai arah ALAMI KELOMPOK (tipe), bukan
+    // saldoNormal masing-masing akun. Ini supaya akun kontra seperti "BOP
+    // Dibebankan" (tipe Beban, tapi saldoNormal Kredit) tetap MENGURANGI
+    // total Beban, bukan malah menambah. Kalau dihitung berdasarkan saldoNormal
+    // individual lalu dijumlah per kelompok, akun kontra akan salah arah.
+    function computeSaldoKelompok(akun, jurnalList) {
+      let debit = 0, kredit = 0;
+      jurnalList.forEach(j => j.detail.forEach(d => {
+        if (d.kode === akun.kode) { debit += Number(d.debit) || 0; kredit += Number(d.kredit) || 0; }
+      }));
+      // Aset & Beban = kelompok alami Debit. Liabilitas, Ekuitas, Pendapatan = kelompok alami Kredit.
+      const kelompokDebit = akun.tipe === 'Aset' || akun.tipe === 'Beban';
+      const net = kelompokDebit ? (debit - kredit) : (kredit - debit);
+      return { debit, kredit, net };
+    }
+
+    function renderGroup(bodyId, akunList, saldoMap) {
+      const body = document.getElementById(bodyId);
+      let total = 0;
+
+      if (akunList.length === 0) {
+        body.innerHTML = `<tr><td colspan="2" class="table-empty">-</td></tr>`;
+        return 0;
+      }
+
+      body.innerHTML = akunList.map(a => {
+        const val = saldoMap[a.kode] || 0;
+        total += val;
+        return `<tr><td>${esc(a.kode)} — ${esc(a.nama)}</td><td class="text-right">${Fmt.rupiah(val)}</td></tr>`;
+      }).join('');
+
+      return total;
+    }
+
+    function render() {
+      const coa = getCOA().slice().sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+      const jurnal = getJurnal(); // SEMUA jurnal, termasuk penyesuaian — laporan final
+
+      const saldoMap = {};
+      coa.forEach(a => { saldoMap[a.kode] = computeSaldoKelompok(a, jurnal).net; });
+
+      const akunPendapatan = coa.filter(a => a.tipe === 'Pendapatan');
+      const akunBeban = coa.filter(a => a.tipe === 'Beban');
+      const akunAset = coa.filter(a => a.tipe === 'Aset');
+      const akunLiabilitas = coa.filter(a => a.tipe === 'Liabilitas');
+      const akunEkuitas = coa.filter(a => a.tipe === 'Ekuitas');
+
+      const totalPendapatan = renderGroup('tabelPendapatan', akunPendapatan, saldoMap);
+      const totalBeban = renderGroup('tabelBeban', akunBeban, saldoMap);
+      const labaRugi = totalPendapatan - totalBeban;
+
+      document.getElementById('totalPendapatan').textContent = Fmt.rupiah(totalPendapatan);
+      document.getElementById('totalBeban').textContent = Fmt.rupiah(totalBeban);
+      document.getElementById('labelLabaRugi').textContent = labaRugi >= 0 ? 'Laba Bersih' : 'Rugi Bersih';
+      document.getElementById('nilaiLabaRugi').textContent = Fmt.rupiah(Math.abs(labaRugi));
+
+      const totalAset = renderGroup('tabelAset', akunAset, saldoMap);
+      const totalLiabilitas = renderGroup('tabelLiabilitas', akunLiabilitas, saldoMap);
+      const totalEkuitasAkun = renderGroup('tabelEkuitas', akunEkuitas, saldoMap);
+      const totalEkuitas = totalEkuitasAkun + labaRugi;
+
+      document.getElementById('totalAset').textContent = Fmt.rupiah(totalAset);
+      document.getElementById('totalLiabilitas').textContent = Fmt.rupiah(totalLiabilitas);
+      document.getElementById('ekuitasLabaBerjalan').textContent = Fmt.rupiah(labaRugi);
+      document.getElementById('totalEkuitas').textContent = Fmt.rupiah(totalEkuitas);
+
+      const selisih = Math.abs(totalAset - (totalLiabilitas + totalEkuitas));
+      const box = document.getElementById('statusBalanceNeraca');
+      box.innerHTML = selisih < 0.01
+        ? `<div class="alert alert-success">✓ <div><strong>BALANCE</strong> — Aset = Liabilitas + Ekuitas</div></div>`
+        : `<div class="alert alert-danger">⚠️ <div><strong>TIDAK BALANCE</strong> — Selisih ${Fmt.rupiah(selisih)}</div></div>`;
+
+      // Perubahan Ekuitas
+      const equityKodes = akunEkuitas.map(a => a.kode);
+      let setoran = 0, penarikan = 0;
+      jurnal.forEach(j => {
+        j.detail.forEach(d => {
+          if (equityKodes.includes(d.kode)) {
+            setoran += Number(d.kredit) || 0;
+            penarikan += Number(d.debit) || 0;
+          }
+        });
+      });
+      const modalAkhir = setoran - penarikan + labaRugi;
+
+      document.getElementById('tabelPerubahanEkuitas').innerHTML = `
+        <tr><td>Modal Awal Periode</td><td class="text-right">Rp 0</td></tr>
+        <tr><td>(+) Setoran Modal</td><td class="text-right">${Fmt.rupiah(setoran)}</td></tr>
+        <tr><td>(-) Penarikan</td><td class="text-right">${Fmt.rupiah(penarikan)}</td></tr>
+        <tr><td>(${labaRugi >= 0 ? '+' : '-'}) Laba (Rugi) Bersih</td><td class="text-right">${Fmt.rupiah(Math.abs(labaRugi))}</td></tr>
+        <tr style="font-weight:700; background:var(--primary-light);"><td>Modal Akhir Periode</td><td class="text-right">${Fmt.rupiah(modalAkhir)}</td></tr>
+      `;
+    }
+
+    render();
+  </script>
+</body>
+</html>

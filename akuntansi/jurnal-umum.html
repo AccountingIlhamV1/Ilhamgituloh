@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jurnal Umum — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Akuntansi</a>
+        <span>/</span>
+        <span class="current">Jurnal Umum</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📖 Jurnal Umum</h1>
+      <p class="subtitle">
+        Seluruh jurnal — otomatis dari Produksi/Pembelian/Penjualan, plus
+        entri manual yang kamu buat sendiri di bawah.
+      </p>
+    </section>
+
+    <!-- ===== FORM MANUAL ===== -->
+    <section class="card">
+      <h2 class="card-title">➕ Buat Jurnal Manual</h2>
+
+      <form id="formManual" autocomplete="off">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="tanggal">Tanggal <span class="required">*</span></label>
+            <input type="date" id="tanggal" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="keterangan">Keterangan <span class="required">*</span></label>
+            <input type="text" id="keterangan" class="form-control" placeholder="Misal: Koreksi pencatatan" required />
+          </div>
+        </div>
+
+        <div class="flex-between mb-16" style="margin-top:12px;">
+          <h3 style="font-size:1rem; font-weight:700;">Baris Jurnal</h3>
+          <button type="button" class="btn btn-sm btn-accent" id="btnTambahBaris">➕ Tambah Baris</button>
+        </div>
+
+        <div class="table-wrapper mb-16">
+          <table class="table">
+            <thead>
+              <tr><th>Akun</th><th style="width:160px;" class="text-right">Debit</th><th style="width:160px;" class="text-right">Kredit</th><th style="width:70px;" class="text-center">Aksi</th></tr>
+            </thead>
+            <tbody id="tabelBaris"></tbody>
+            <tfoot>
+              <tr style="font-weight:700;">
+                <td class="text-right">TOTAL</td>
+                <td class="text-right" id="totalDebitTampil">Rp 0</td>
+                <td class="text-right" id="totalKreditTampil">Rp 0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div id="statusBalanceForm" class="alert alert-warning">⚠️ Total Debit dan Kredit belum sama.</div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 Simpan Jurnal Manual</button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== DAFTAR ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Semua Entri Jurnal</h2>
+        <div class="flex gap-8">
+          <select id="filterSumber" class="form-select" style="width:auto;">
+            <option value="">Semua Sumber</option>
+          </select>
+          <span class="badge badge-primary" id="totalRiwayat">0 entri</span>
+        </div>
+      </div>
+      <div id="daftarJurnal"></div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    let baris = [];
+
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+    function setJurnal(list) { Store.set('jurnal', list); }
+    function getCOA() { return Store.get('chart_of_accounts', []) || []; }
+
+    const LABEL_SUMBER = {
+      manual: '✍️ Manual', pemakaian_bahan: '🧱 Pemakaian Bahan', btkl: '👷 BTKL',
+      bop_dibebankan: '⚙️ BOP Dibebankan', bop_aktual: '⚙️ BOP Aktual', hasil_produksi: '✅ Hasil Produksi',
+      faktur_pembelian: '🧾 Faktur Pembelian', pembayaran_pembelian: '💳 Bayar Pembelian',
+      faktur_penjualan_jual: '🧾 Penjualan', faktur_penjualan_hpp: '📦 HPP Penjualan',
+      pembayaran_penjualan: '💳 Terima Penjualan', jurnal_penyesuaian: '🔧 Penyesuaian', psak115: '📑 PSAK 115',
+    };
+
+    function renderBaris() {
+      const tbody = document.getElementById('tabelBaris');
+      const coa = getCOA();
+
+      if (baris.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="table-empty">Klik "Tambah Baris" untuk mulai.</td></tr>`;
+      } else {
+        tbody.innerHTML = baris.map((b, i) => `
+          <tr>
+            <td>
+              <select class="form-select" onchange="ubahBaris(${i}, 'kode', this.value)">
+                ${coa.map(a => `<option value="${a.kode}" ${a.kode === b.kode ? 'selected' : ''}>${esc(a.kode)} — ${esc(a.nama)}</option>`).join('')}
+              </select>
+            </td>
+            <td><input type="number" class="form-control" min="0" step="any" value="${b.debit}" onchange="ubahBaris(${i}, 'debit', this.value)" /></td>
+            <td><input type="number" class="form-control" min="0" step="any" value="${b.kredit}" onchange="ubahBaris(${i}, 'kredit', this.value)" /></td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-danger" onclick="hapusBaris(${i})">🗑️</button></td>
+          </tr>`).join('');
+      }
+
+      const totalDebit = baris.reduce((s, b) => s + b.debit, 0);
+      const totalKredit = baris.reduce((s, b) => s + b.kredit, 0);
+      document.getElementById('totalDebitTampil').textContent = Fmt.rupiah(totalDebit);
+      document.getElementById('totalKreditTampil').textContent = Fmt.rupiah(totalKredit);
+
+      const box = document.getElementById('statusBalanceForm');
+      const balance = baris.length >= 2 && Math.abs(totalDebit - totalKredit) < 0.01 && totalDebit > 0;
+      box.className = balance ? 'alert alert-success' : 'alert alert-warning';
+      box.textContent = balance ? '✅ Debit dan Kredit sudah balance, siap disimpan.' : '⚠️ Total Debit dan Kredit belum sama.';
+    }
+
+    function ubahBaris(i, field, val) {
+      baris[i][field] = field === 'kode' ? val : (Number(val) || 0);
+      renderBaris();
+    }
+    function hapusBaris(i) { baris.splice(i, 1); renderBaris(); }
+
+    document.getElementById('btnTambahBaris').addEventListener('click', function () {
+      const coa = getCOA();
+      if (coa.length === 0) { notify('❌ Belum ada Chart of Accounts', 'danger'); return; }
+      baris.push({ kode: coa[0].kode, debit: 0, kredit: 0 });
+      renderBaris();
+    });
+
+    document.getElementById('formManual').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const totalDebit = baris.reduce((s, b) => s + b.debit, 0);
+      const totalKredit = baris.reduce((s, b) => s + b.kredit, 0);
+
+      if (baris.length < 2) { notify('❌ Minimal 2 baris (1 debit, 1 kredit)', 'danger'); return; }
+      if (Math.abs(totalDebit - totalKredit) >= 0.01 || totalDebit <= 0) { notify('❌ Total Debit dan Kredit harus sama & > 0', 'danger'); return; }
+
+      const coa = getCOA();
+      const detail = baris.filter(b => b.debit > 0 || b.kredit > 0).map(b => {
+        const a = coa.find(x => x.kode === b.kode);
+        return { kode: b.kode, nama: a ? a.nama : '?', debit: b.debit, kredit: b.kredit };
+      });
+
+      const list = getJurnal();
+      list.push({
+        id: IDGen.generate('JRN'),
+        tanggal: document.getElementById('tanggal').value,
+        ref: '-',
+        keterangan: document.getElementById('keterangan').value.trim(),
+        source: 'manual',
+        sourceId: null,
+        detail,
+        createdAt: new Date().toISOString(),
+      });
+      setJurnal(list);
+
+      notify('✅ Jurnal manual disimpan', 'success');
+      resetForm();
+      renderDaftar();
+      isiFilterSumber();
+    });
+
+    function resetForm() {
+      document.getElementById('formManual').reset();
+      document.getElementById('tanggal').value = Fmt.today();
+      baris = [];
+      renderBaris();
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    function isiFilterSumber() {
+      const sel = document.getElementById('filterSumber');
+      const sumberAda = [...new Set(getJurnal().map(j => j.source))];
+      const currentVal = sel.value;
+      sel.innerHTML = '<option value="">Semua Sumber</option>' +
+        sumberAda.map(s => `<option value="${s}">${LABEL_SUMBER[s] || s}</option>`).join('');
+      if (currentVal) sel.value = currentVal;
+    }
+    document.getElementById('filterSumber').addEventListener('change', renderDaftar);
+
+    function renderDaftar() {
+      const filter = document.getElementById('filterSumber').value;
+      let list = getJurnal().slice().sort((a, b) => String(b.tanggal).localeCompare(String(a.tanggal)) || String(b.createdAt || '').localeCompare(a.createdAt || ''));
+      if (filter) list = list.filter(j => j.source === filter);
+
+      const container = document.getElementById('daftarJurnal');
+      document.getElementById('totalRiwayat').textContent = `${list.length} entri`;
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="alert alert-info">Belum ada jurnal.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(j => {
+        const totalD = j.detail.reduce((s, d) => s + (Number(d.debit) || 0), 0);
+        const rows = j.detail.map(d => `
+          <tr>
+            <td>${esc(d.kode)} — ${esc(d.nama)}</td>
+            <td class="text-right">${d.debit > 0 ? Fmt.rupiah(d.debit) : '-'}</td>
+            <td class="text-right">${d.kredit > 0 ? Fmt.rupiah(d.kredit) : '-'}</td>
+          </tr>`).join('');
+
+        return `
+          <div class="card" style="margin-bottom:14px;">
+            <div class="flex-between mb-16">
+              <div>
+                <h3 style="color:var(--primary); margin-bottom:4px; font-size:1rem;">${esc(j.keterangan)}</h3>
+                <div class="text-muted" style="font-size:0.85rem;">
+                  ${Fmt.tanggal(j.tanggal)} | Ref: ${esc(j.ref || '-')} |
+                  <span class="badge badge-muted">${LABEL_SUMBER[j.source] || esc(j.source)}</span>
+                </div>
+              </div>
+              ${j.source === 'manual' ? `<button class="btn btn-sm btn-danger" onclick="hapusManual('${j.id}')">🗑️</button>` : ''}
+            </div>
+            <div class="table-wrapper"><table class="table"><thead><tr><th>Akun</th><th class="text-right" style="width:140px;">Debit</th><th class="text-right" style="width:140px;">Kredit</th></tr></thead><tbody>${rows}</tbody></table></div>
+          </div>`;
+      }).join('');
+    }
+
+    function hapusManual(id) {
+      const j = getJurnal().find(x => x.id === id);
+      if (!j || j.source !== 'manual') { notify('❌ Hanya jurnal manual yang bisa dihapus dari sini', 'danger'); return; }
+      if (!confirm('Hapus jurnal manual ini?')) return;
+
+      setJurnal(getJurnal().filter(x => x.id !== id));
+      notify('🗑️ Jurnal manual dihapus', 'warning');
+      renderDaftar();
+      isiFilterSumber();
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    document.getElementById('tanggal').value = Fmt.today();
+    renderBaris();
+    isiFilterSumber();
+    renderDaftar();
+  </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neraca Lajur — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <style>
+    .worksheet-table { font-size: 0.82rem; }
+    .worksheet-table th, .worksheet-table td { padding: 6px 8px; white-space: nowrap; }
+    .group-header th { background: var(--primary); color: #fff; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Akuntansi</a>
+        <span>/</span>
+        <span class="current">Neraca Lajur</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📊 Neraca Lajur (Worksheet)</h1>
+      <p class="subtitle">
+        Worksheet 10 kolom klasik: Neraca Saldo → Penyesuaian → Neraca Saldo
+        Disesuaikan → Laba Rugi → Neraca. Baris terakhir "Laba/Rugi Bersih"
+        otomatis jadi angka penyeimbang.
+      </p>
+    </section>
+
+    <div id="statusBalance"></div>
+
+    <section class="card" style="margin-top:16px; overflow-x:auto;">
+      <table class="table worksheet-table">
+        <thead>
+          <tr class="group-header">
+            <th rowspan="2" style="background:var(--primary-dark);">Akun</th>
+            <th colspan="2">Neraca Saldo</th>
+            <th colspan="2">Penyesuaian</th>
+            <th colspan="2">NS Disesuaikan</th>
+            <th colspan="2">Laba Rugi</th>
+            <th colspan="2">Neraca</th>
+          </tr>
+          <tr class="group-header">
+            <th>Debit</th><th>Kredit</th>
+            <th>Debit</th><th>Kredit</th>
+            <th>Debit</th><th>Kredit</th>
+            <th>Debit</th><th>Kredit</th>
+            <th>Debit</th><th>Kredit</th>
+          </tr>
+        </thead>
+        <tbody id="tabelWorksheet"></tbody>
+        <tfoot id="footerWorksheet"></tfoot>
+      </table>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+    function getCOA() { return Store.get('chart_of_accounts', []) || []; }
+
+    function fmtCell(v) { return v > 0.001 ? Fmt.rupiah(v) : '-'; }
+
+    function render() {
+      const coa = getCOA().slice().sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+      const semuaJurnal = getJurnal();
+      const jurnalNS = semuaJurnal.filter(j => j.source !== 'jurnal_penyesuaian');
+      const jurnalAJP = semuaJurnal.filter(j => j.source === 'jurnal_penyesuaian');
+
+      function sumPerAkun(kode, jurnalList) {
+        let debit = 0, kredit = 0;
+        jurnalList.forEach(j => j.detail.forEach(d => {
+          if (d.kode === kode) { debit += Number(d.debit) || 0; kredit += Number(d.kredit) || 0; }
+        }));
+        return { debit, kredit };
+      }
+
+      let totals = {
+        ns: { d: 0, k: 0 }, ajp: { d: 0, k: 0 }, nsd: { d: 0, k: 0 },
+        lr: { d: 0, k: 0 }, neraca: { d: 0, k: 0 },
+      };
+
+      const rows = coa.map(a => {
+        const ns = sumPerAkun(a.kode, jurnalNS);
+        const ajp = sumPerAkun(a.kode, jurnalAJP);
+
+        const netNS = ns.debit - ns.kredit;
+        const netAJP = ajp.debit - ajp.kredit;
+        const netNSD = netNS + netAJP;
+
+        const nsD = netNS > 0 ? netNS : 0, nsK = netNS < 0 ? -netNS : 0;
+        const ajpD = netAJP > 0 ? netAJP : 0, ajpK = netAJP < 0 ? -netAJP : 0;
+        const nsdD = netNSD > 0 ? netNSD : 0, nsdK = netNSD < 0 ? -netNSD : 0;
+
+        const isNominal = a.tipe === 'Pendapatan' || a.tipe === 'Beban';
+        const lrD = isNominal ? nsdD : 0, lrK = isNominal ? nsdK : 0;
+        const neracaD = !isNominal ? nsdD : 0, neracaK = !isNominal ? nsdK : 0;
+
+        totals.ns.d += nsD; totals.ns.k += nsK;
+        totals.ajp.d += ajpD; totals.ajp.k += ajpK;
+        totals.nsd.d += nsdD; totals.nsd.k += nsdK;
+        totals.lr.d += lrD; totals.lr.k += lrK;
+        totals.neraca.d += neracaD; totals.neraca.k += neracaK;
+
+        return { akun: a, nsD, nsK, ajpD, ajpK, nsdD, nsdK, lrD, lrK, neracaD, neracaK };
+      }).filter(r => r.nsD || r.nsK || r.ajpD || r.ajpK);
+
+      // Baris penyeimbang Laba/Rugi Bersih
+      const labaRugi = totals.lr.k - totals.lr.d; // jika positif = laba (pendapatan > beban)
+      let labaRugiRow = '';
+      if (Math.abs(labaRugi) > 0.001) {
+        if (labaRugi > 0) {
+          // Laba: tambahkan di sisi Debit kolom L/R (penyeimbang), dan Kredit kolom Neraca (nambah ekuitas)
+          totals.lr.d += labaRugi;
+          totals.neraca.k += labaRugi;
+          labaRugiRow = `
+            <tr style="font-style:italic; background:#f8fafc;">
+              <td>Laba Bersih</td>
+              <td colspan="6"></td>
+              <td class="text-right">${fmtCell(labaRugi)}</td><td></td>
+              <td></td><td class="text-right">${fmtCell(labaRugi)}</td>
+            </tr>`;
+        } else {
+          const rugi = -labaRugi;
+          totals.lr.k += rugi;
+          totals.neraca.d += rugi;
+          labaRugiRow = `
+            <tr style="font-style:italic; background:#f8fafc;">
+              <td>Rugi Bersih</td>
+              <td colspan="6"></td>
+              <td></td><td class="text-right">${fmtCell(rugi)}</td>
+              <td class="text-right">${fmtCell(rugi)}</td><td></td>
+            </tr>`;
+        }
+      }
+
+      document.getElementById('tabelWorksheet').innerHTML = rows.length === 0
+        ? `<tr><td colspan="11" class="table-empty">Belum ada transaksi tercatat.</td></tr>`
+        : rows.map(r => `
+            <tr>
+              <td><strong>${esc(r.akun.kode)}</strong> ${esc(r.akun.nama)}</td>
+              <td class="text-right">${fmtCell(r.nsD)}</td><td class="text-right">${fmtCell(r.nsK)}</td>
+              <td class="text-right">${fmtCell(r.ajpD)}</td><td class="text-right">${fmtCell(r.ajpK)}</td>
+              <td class="text-right">${fmtCell(r.nsdD)}</td><td class="text-right">${fmtCell(r.nsdK)}</td>
+              <td class="text-right">${fmtCell(r.lrD)}</td><td class="text-right">${fmtCell(r.lrK)}</td>
+              <td class="text-right">${fmtCell(r.neracaD)}</td><td class="text-right">${fmtCell(r.neracaK)}</td>
+            </tr>`).join('') + labaRugiRow;
+
+      document.getElementById('footerWorksheet').innerHTML = `
+        <tr style="background:var(--primary-light); font-weight:700;">
+          <td>TOTAL</td>
+          <td class="text-right">${fmtCell(totals.ns.d)}</td><td class="text-right">${fmtCell(totals.ns.k)}</td>
+          <td class="text-right">${fmtCell(totals.ajp.d)}</td><td class="text-right">${fmtCell(totals.ajp.k)}</td>
+          <td class="text-right">${fmtCell(totals.nsd.d)}</td><td class="text-right">${fmtCell(totals.nsd.k)}</td>
+          <td class="text-right">${fmtCell(totals.lr.d)}</td><td class="text-right">${fmtCell(totals.lr.k)}</td>
+          <td class="text-right">${fmtCell(totals.neraca.d)}</td><td class="text-right">${fmtCell(totals.neraca.k)}</td>
+        </tr>`;
+
+      // Cek balance keseluruhan
+      const box = document.getElementById('statusBalance');
+      const okNS = Math.abs(totals.ns.d - totals.ns.k) < 0.01;
+      const okNSD = Math.abs(totals.nsd.d - totals.nsd.k) < 0.01;
+      const okLR = Math.abs(totals.lr.d - totals.lr.k) < 0.01;
+      const okNeraca = Math.abs(totals.neraca.d - totals.neraca.k) < 0.01;
+
+      if (okNS && okNSD && okLR && okNeraca) {
+        box.innerHTML = `<div class="alert alert-success">✓ <div><strong>Worksheet BALANCE</strong> di semua kolom (Neraca Saldo, NS Disesuaikan, Laba Rugi, Neraca).</div></div>`;
+      } else {
+        box.innerHTML = `<div class="alert alert-danger">⚠️ <div><strong>Ada kolom yang tidak balance.</strong> NS: ${okNS ? '✓' : '✗'} | NSD: ${okNSD ? '✓' : '✗'} | Laba Rugi: ${okLR ? '✓' : '✗'} | Neraca: ${okNeraca ? '✓' : '✗'}</div></div>`;
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
