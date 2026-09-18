@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stok Bahan Baku — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Persediaan</a>
+        <span>/</span>
+        <span class="current">Stok Bahan Baku</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🧱 Stok Bahan Baku</h1>
+      <p class="subtitle">
+        Saldo bahan baku saat ini di gudang, nilai persediaan, dan status
+        stok menipis (di bawah stok minimum).
+      </p>
+    </section>
+
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🧱</div>
+          <h3 id="totalItem">0</h3>
+          <p>Total Jenis Bahan</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">💰</div>
+          <h3 id="totalNilai">Rp 0</h3>
+          <p>Total Nilai Persediaan</p>
+        </div>
+        <div class="menu-card" style="cursor:default; background:linear-gradient(135deg,#fef2f2,#fee2e2);">
+          <div class="card-icon">⚠️</div>
+          <h3 id="totalMenipis">0</h3>
+          <p>Item Stok Menipis</p>
+        </div>
+      </div>
+    </section>
+
+    <div id="alertMenipis"></div>
+
+    <!-- ===== SALDO ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Saldo Bahan Baku</h2>
+        <input type="text" id="search" class="form-control" placeholder="🔍 Cari nama / kode..." style="width:auto; min-width:200px;" />
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:90px;">Kode</th>
+              <th>Nama Bahan</th>
+              <th>Kategori</th>
+              <th class="text-right" style="width:110px;">Stok</th>
+              <th class="text-right" style="width:110px;">Stok Min</th>
+              <th class="text-right" style="width:130px;">Harga</th>
+              <th class="text-right" style="width:150px;">Nilai Total</th>
+              <th class="text-center" style="width:110px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="tabelStok"></tbody>
+          <tfoot>
+            <tr style="background:var(--primary-light); font-weight:700;">
+              <td colspan="6" class="text-right">TOTAL NILAI PERSEDIAAN</td>
+              <td class="text-right" id="footerTotal">Rp 0</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== MUTASI KELUAR ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📤 Riwayat Pemakaian (Mutasi Keluar)</h2>
+        <span class="badge badge-primary" id="totalMutasi">0 transaksi</span>
+      </div>
+      <p class="text-muted mb-16" style="font-size:0.88rem;">
+        Detail per item — untuk kartu stok lengkap (termasuk perkiraan saldo berjalan), buka
+        <a href="kartu-stok.html">Kartu Stok</a>.
+      </p>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr><th style="width:110px;">Tanggal</th><th>Bahan</th><th>No SPK</th><th class="text-right" style="width:110px;">Qty Keluar</th><th class="text-right" style="width:150px;">Nilai</th></tr>
+          </thead>
+          <tbody id="tabelMutasi"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getBahan() { return Store.get('bahan_baku', []) || []; }
+    function getPakai() { return Store.get('pemakaian_bahan', []) || []; }
+
+    function renderRingkasan() {
+      const bahan = getBahan();
+      const totalNilai = bahan.reduce((s, b) => s + (Number(b.stok) * Number(b.harga)), 0);
+      const menipis = bahan.filter(b => Number(b.stok) <= Number(b.stokMin || 0) && Number(b.stokMin || 0) > 0);
+
+      document.getElementById('totalItem').textContent = bahan.length;
+      document.getElementById('totalNilai').textContent = Fmt.rupiah(totalNilai);
+      document.getElementById('totalMenipis').textContent = menipis.length;
+      document.getElementById('footerTotal').textContent = Fmt.rupiah(totalNilai);
+
+      const alertBox = document.getElementById('alertMenipis');
+      if (menipis.length > 0) {
+        alertBox.innerHTML = `
+          <div class="alert alert-warning">
+            ⚠️ <div>
+              <strong>${menipis.length} bahan baku stoknya menipis:</strong>
+              ${menipis.map(b => esc(b.nama)).join(', ')}.
+              Segera lakukan pembelian.
+            </div>
+          </div>`;
+      } else {
+        alertBox.innerHTML = '';
+      }
+    }
+
+    function renderTabel() {
+      const q = document.getElementById('search').value.toLowerCase();
+      let list = getBahan();
+      if (q) list = list.filter(b => (b.nama || '').toLowerCase().includes(q) || (b.kode || '').toLowerCase().includes(q));
+      list.sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+
+      const tbody = document.getElementById('tabelStok');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="table-empty">Belum ada data bahan baku. Isi di <a href="../master-data/bahan-baku.html">Master Data</a>.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(b => {
+        const stok = Number(b.stok) || 0;
+        const stokMin = Number(b.stokMin) || 0;
+        const nilai = stok * Number(b.harga);
+        const menipis = stokMin > 0 && stok <= stokMin;
+        const habis = stok <= 0;
+
+        let badge = '<span class="badge badge-success">✅ Aman</span>';
+        if (habis) badge = '<span class="badge badge-danger">🚫 Habis</span>';
+        else if (menipis) badge = '<span class="badge badge-warning">⚠️ Menipis</span>';
+
+        return `
+          <tr>
+            <td><strong>${esc(b.kode)}</strong></td>
+            <td>${esc(b.nama)}</td>
+            <td>${esc(b.kategori || '-')}</td>
+            <td class="text-right">${Fmt.angka(stok)} ${esc(b.satuan || '')}</td>
+            <td class="text-right">${Fmt.angka(stokMin)} ${esc(b.satuan || '')}</td>
+            <td class="text-right">${Fmt.rupiah(b.harga)}</td>
+            <td class="text-right"><strong>${Fmt.rupiah(nilai)}</strong></td>
+            <td class="text-center">${badge}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderMutasi() {
+      const pakai = getPakai();
+      const tbody = document.getElementById('tabelMutasi');
+
+      const rows = [];
+      pakai.forEach(p => {
+        p.items.forEach(it => {
+          rows.push({ tglPakai: p.tglPakai, noSPK: p.noSPK, kode: it.kode, nama: it.nama, qty: it.qtyAktual, satuan: it.satuan, nilai: it.subtotal });
+        });
+      });
+      rows.sort((a, b) => String(b.tglPakai).localeCompare(String(a.tglPakai)));
+
+      document.getElementById('totalMutasi').textContent = `${rows.length} transaksi`;
+
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Belum ada pemakaian bahan baku.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${Fmt.tanggal(r.tglPakai)}</td>
+          <td>${esc(r.kode)} — ${esc(r.nama)}</td>
+          <td>${esc(r.noSPK)}</td>
+          <td class="text-right">${Fmt.angka(r.qty)} ${esc(r.satuan)}</td>
+          <td class="text-right">${Fmt.rupiah(r.nilai)}</td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('search').addEventListener('input', renderTabel);
+
+    renderRingkasan();
+    renderTabel();
+    renderMutasi();
+  </script>
+</body>
+</html>

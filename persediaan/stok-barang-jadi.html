@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stok Barang Jadi — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Persediaan</a>
+        <span>/</span>
+        <span class="current">Stok Barang Jadi</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📦 Stok Barang Jadi</h1>
+      <p class="subtitle">
+        Saldo produk selesai di gudang, nilai persediaan (pakai harga pokok
+        rata-rata tertimbang), dan estimasi margin terhadap harga jual.
+      </p>
+    </section>
+
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📦</div>
+          <h3 id="totalItem">0</h3>
+          <p>Total Jenis Produk</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">💰</div>
+          <h3 id="totalNilai">Rp 0</h3>
+          <p>Total Nilai Persediaan (HPP)</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🏷️</div>
+          <h3 id="totalNilaiJual">Rp 0</h3>
+          <p>Estimasi Nilai Jual</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SALDO ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Saldo Barang Jadi</h2>
+        <input type="text" id="search" class="form-control" placeholder="🔍 Cari nama / kode..." style="width:auto; min-width:200px;" />
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:90px;">Kode</th>
+              <th>Nama Produk</th>
+              <th class="text-right" style="width:110px;">Stok</th>
+              <th class="text-right" style="width:140px;">HPP/Unit</th>
+              <th class="text-right" style="width:150px;">Nilai Persediaan</th>
+              <th class="text-right" style="width:130px;">Harga Jual</th>
+              <th class="text-right" style="width:110px;">Est. Margin</th>
+            </tr>
+          </thead>
+          <tbody id="tabelStok"></tbody>
+          <tfoot>
+            <tr style="background:var(--primary-light); font-weight:700;">
+              <td colspan="4" class="text-right">TOTAL</td>
+              <td class="text-right" id="footerNilai">Rp 0</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== MUTASI MASUK ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📥 Riwayat Masuk (dari Hasil Produksi)</h2>
+        <span class="badge badge-primary" id="totalMutasi">0 transaksi</span>
+      </div>
+      <p class="text-muted mb-16" style="font-size:0.88rem;">
+        Mutasi keluar (penjualan) akan tampil di sini setelah modul
+        <strong>Penjualan</strong> dibangun.
+      </p>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr><th style="width:110px;">Tanggal</th><th>Produk</th><th>No SPK</th><th class="text-right" style="width:110px;">Qty Masuk</th><th class="text-right" style="width:130px;">HPP/Unit</th><th class="text-right" style="width:150px;">Nilai</th></tr>
+          </thead>
+          <tbody id="tabelMutasi"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getHasil() { return Store.get('hasil_produksi', []) || []; }
+
+    function renderRingkasan() {
+      const produk = getProduk();
+      const totalNilai = produk.reduce((s, p) => s + (Number(p.stok) * Number(p.hargaPokok)), 0);
+      const totalNilaiJual = produk.reduce((s, p) => s + (Number(p.stok) * Number(p.hargaJual)), 0);
+
+      document.getElementById('totalItem').textContent = produk.length;
+      document.getElementById('totalNilai').textContent = Fmt.rupiah(totalNilai);
+      document.getElementById('totalNilaiJual').textContent = Fmt.rupiah(totalNilaiJual);
+      document.getElementById('footerNilai').textContent = Fmt.rupiah(totalNilai);
+    }
+
+    function renderTabel() {
+      const q = document.getElementById('search').value.toLowerCase();
+      let list = getProduk();
+      if (q) list = list.filter(p => (p.nama || '').toLowerCase().includes(q) || (p.kode || '').toLowerCase().includes(q));
+      list.sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+
+      const tbody = document.getElementById('tabelStok');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Belum ada produk jadi. Isi di <a href="../master-data/produk-jadi.html">Master Data</a>.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => {
+        const stok = Number(p.stok) || 0;
+        const hpp = Number(p.hargaPokok) || 0;
+        const hargaJual = Number(p.hargaJual) || 0;
+        const nilai = stok * hpp;
+        const marginPct = hargaJual > 0 ? ((hargaJual - hpp) / hargaJual) * 100 : 0;
+        const marginBadge = marginPct >= 20
+          ? `<span class="badge badge-success">${marginPct.toFixed(1)}%</span>`
+          : marginPct >= 0
+            ? `<span class="badge badge-warning">${marginPct.toFixed(1)}%</span>`
+            : `<span class="badge badge-danger">${marginPct.toFixed(1)}%</span>`;
+
+        return `
+          <tr>
+            <td><strong>${esc(p.kode)}</strong></td>
+            <td>${esc(p.nama)}</td>
+            <td class="text-right">${Fmt.angka(stok)} ${esc(p.satuan || '')}</td>
+            <td class="text-right">${Fmt.rupiah(hpp)}</td>
+            <td class="text-right"><strong>${Fmt.rupiah(nilai)}</strong></td>
+            <td class="text-right">${Fmt.rupiah(hargaJual)}</td>
+            <td class="text-right">${marginBadge}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderMutasi() {
+      const hasil = getHasil().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const produk = getProduk();
+      const tbody = document.getElementById('tabelMutasi');
+      document.getElementById('totalMutasi').textContent = `${hasil.length} transaksi`;
+
+      if (hasil.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Belum ada barang jadi masuk.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = hasil.map(h => {
+        const p = produk.find(x => x.id === h.produkId);
+        return `
+          <tr>
+            <td>${Fmt.tanggal(h.tglSelesai)}</td>
+            <td>${esc(p ? p.nama : '?')}</td>
+            <td>${esc(h.noSPK)}</td>
+            <td class="text-right">${Fmt.angka(h.qtyJadi)}</td>
+            <td class="text-right">${Fmt.rupiah(h.hppPerUnit)}</td>
+            <td class="text-right">${Fmt.rupiah(h.totalHPP)}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('search').addEventListener('input', renderTabel);
+
+    renderRingkasan();
+    renderTabel();
+    renderMutasi();
+  </script>
+</body>
+</html>

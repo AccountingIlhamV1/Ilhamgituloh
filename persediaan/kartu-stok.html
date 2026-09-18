@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kartu Stok — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Persediaan</a>
+        <span>/</span>
+        <span class="current">Kartu Stok</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📇 Kartu Stok</h1>
+      <p class="subtitle">
+        Riwayat keluar-masuk satu item, lengkap dengan saldo berjalan
+        (metode perpetual). Pilih jenis dan item di bawah.
+      </p>
+    </section>
+
+    <div class="alert alert-info" id="infoSaldoAwal" style="display:none;"></div>
+
+    <!-- ===== FILTER ===== -->
+    <section class="card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="jenisItem">Jenis Persediaan</label>
+          <select id="jenisItem" class="form-select">
+            <option value="bahan_baku">🧱 Bahan Baku</option>
+            <option value="produk_jadi">📦 Barang Jadi</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="itemId">Pilih Item</label>
+          <select id="itemId" class="form-select">
+            <option value="">— Pilih Item —</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== KARTU ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0" id="judulKartu">📋 Kartu Stok</h2>
+        <span class="badge badge-primary" id="saldoAkhirBadge">Saldo: 0</span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:120px;">Tanggal</th>
+              <th>Keterangan</th>
+              <th style="width:100px;" class="text-center">Jenis</th>
+              <th class="text-right" style="width:110px;">Masuk</th>
+              <th class="text-right" style="width:110px;">Keluar</th>
+              <th class="text-right" style="width:120px;">Saldo</th>
+            </tr>
+          </thead>
+          <tbody id="tabelKartu"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getBahan() { return Store.get('bahan_baku', []) || []; }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getPakai() { return Store.get('pemakaian_bahan', []) || []; }
+    function getHasil() { return Store.get('hasil_produksi', []) || []; }
+
+    function isiDropdownItem() {
+      const jenis = document.getElementById('jenisItem').value;
+      const sel = document.getElementById('itemId');
+      const list = jenis === 'bahan_baku' ? getBahan() : getProduk();
+
+      if (list.length === 0) {
+        sel.innerHTML = '<option value="">— Belum ada data —</option>';
+        return;
+      }
+
+      sel.innerHTML = '<option value="">— Pilih Item —</option>' +
+        list
+          .slice()
+          .sort((a, b) => String(a.kode).localeCompare(String(b.kode)))
+          .map(x => `<option value="${x.id}">${esc(x.kode)} — ${esc(x.nama)}</option>`).join('');
+    }
+    document.getElementById('jenisItem').addEventListener('change', function () {
+      isiDropdownItem();
+      renderKartu();
+    });
+
+    /* ============================================================
+       BANGUN MUTASI PER JENIS
+       - Bahan Baku: keluar dari pemakaian_bahan
+       - Barang Jadi: masuk dari hasil_produksi
+       Saldo awal dihitung MUNDUR dari saldo sekarang, karena modul
+       Pembelian & Penjualan belum mencatat mutasi masuk/keluar historis.
+       ============================================================ */
+    function bangunMutasiBahan(itemId) {
+      const mutasi = [];
+      getPakai().forEach(p => {
+        const it = p.items.find(x => x.bahanId === itemId);
+        if (it) {
+          mutasi.push({ tanggal: p.tglPakai, keterangan: `Pemakaian — ${p.noSPK}`, jenis: 'Keluar', qty: it.qtyAktual, createdAt: p.createdAt });
+        }
+      });
+      return mutasi;
+    }
+
+    function bangunMutasiProduk(itemId) {
+      const mutasi = [];
+      getHasil().forEach(h => {
+        if (h.produkId === itemId) {
+          mutasi.push({ tanggal: h.tglSelesai, keterangan: `Hasil Produksi — ${h.noSPK}`, jenis: 'Masuk', qty: h.qtyJadi, createdAt: h.createdAt });
+        }
+      });
+      return mutasi;
+    }
+
+    function renderKartu() {
+      const jenis = document.getElementById('jenisItem').value;
+      const itemId = document.getElementById('itemId').value;
+      const tbody = document.getElementById('tabelKartu');
+      const infoSaldoAwal = document.getElementById('infoSaldoAwal');
+
+      if (!itemId) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Pilih item untuk melihat kartu stok.</td></tr>`;
+        document.getElementById('judulKartu').textContent = '📋 Kartu Stok';
+        document.getElementById('saldoAkhirBadge').textContent = 'Saldo: 0';
+        infoSaldoAwal.style.display = 'none';
+        return;
+      }
+
+      const master = jenis === 'bahan_baku' ? getBahan() : getProduk();
+      const item = master.find(x => x.id === itemId);
+      const satuan = item ? (item.satuan || '') : '';
+      const stokSekarang = item ? Number(item.stok) || 0 : 0;
+
+      const mutasi = (jenis === 'bahan_baku' ? bangunMutasiBahan(itemId) : bangunMutasiProduk(itemId))
+        .sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)) || String(a.createdAt || '').localeCompare(b.createdAt || ''));
+
+      // Hitung saldo awal (mundur dari stok sekarang)
+      const totalMasuk = mutasi.filter(m => m.jenis === 'Masuk').reduce((s, m) => s + m.qty, 0);
+      const totalKeluar = mutasi.filter(m => m.jenis === 'Keluar').reduce((s, m) => s + m.qty, 0);
+      const saldoAwal = stokSekarang - totalMasuk + totalKeluar;
+
+      document.getElementById('judulKartu').textContent = `📋 Kartu Stok — ${item ? item.kode + ' ' + item.nama : ''}`;
+      document.getElementById('saldoAkhirBadge').textContent = `Saldo Sekarang: ${Fmt.angka(stokSekarang)} ${satuan}`;
+
+      infoSaldoAwal.style.display = 'block';
+      infoSaldoAwal.innerHTML = `
+        💡 <div>
+          <strong>Saldo Awal (dihitung mundur): ${Fmt.angka(saldoAwal)} ${esc(satuan)}</strong><br>
+          Karena modul Pembelian${jenis === 'produk_jadi' ? '/Penjualan' : ''} belum mencatat mutasi historis,
+          saldo awal ini adalah hasil hitung-mundur dari saldo sekarang dikurangi/ditambah mutasi
+          yang sudah tercatat di sistem — bukan tanggal pasti kapan barang pertama masuk.
+        </div>`;
+
+      let saldo = saldoAwal;
+      let rows = `
+        <tr style="background:#f8fafc; font-style:italic;">
+          <td colspan="5" class="text-right">Saldo Awal</td>
+          <td class="text-right"><strong>${Fmt.angka(saldoAwal)}</strong></td>
+        </tr>`;
+
+      if (mutasi.length === 0) {
+        rows += `<tr><td colspan="6" class="table-empty">Belum ada mutasi tercatat untuk item ini.</td></tr>`;
+      } else {
+        mutasi.forEach(m => {
+          if (m.jenis === 'Masuk') saldo += m.qty; else saldo -= m.qty;
+          rows += `
+            <tr>
+              <td>${Fmt.tanggal(m.tanggal)}</td>
+              <td>${esc(m.keterangan)}</td>
+              <td class="text-center">${m.jenis === 'Masuk' ? '<span class="badge badge-success">Masuk</span>' : '<span class="badge badge-warning">Keluar</span>'}</td>
+              <td class="text-right">${m.jenis === 'Masuk' ? Fmt.angka(m.qty) : '-'}</td>
+              <td class="text-right">${m.jenis === 'Keluar' ? Fmt.angka(m.qty) : '-'}</td>
+              <td class="text-right"><strong>${Fmt.angka(saldo)}</strong></td>
+            </tr>`;
+        });
+      }
+
+      tbody.innerHTML = rows;
+    }
+
+    document.getElementById('itemId').addEventListener('change', renderKartu);
+
+    isiDropdownItem();
+    renderKartu();
+  </script>
+</body>
+</html>

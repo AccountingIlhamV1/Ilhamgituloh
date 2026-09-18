@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stok BDP — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Persediaan</a>
+        <span>/</span>
+        <span class="current">Stok BDP</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🔧 Stok Barang Dalam Proses (BDP)</h1>
+      <p class="subtitle">
+        Nilai pekerjaan dalam proses <strong>saat ini</strong> — dihitung
+        otomatis dari akumulasi BBB + BTKL + BOP Dibebankan tiap SPK yang
+        masih berstatus <strong>"Berjalan"</strong> (belum ditutup di
+        Hasil Produksi).
+      </p>
+    </section>
+
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🔧</div>
+          <h3 id="jmlSPK">0</h3>
+          <p>SPK Sedang Berjalan</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">💰</div>
+          <h3 id="totalBDP">Rp 0</h3>
+          <p>Total Nilai BDP Saat Ini</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DETAIL PER SPK ===== -->
+    <section class="card">
+      <h2 class="card-title">📋 Rincian Nilai BDP per SPK</h2>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>No SPK</th>
+              <th>Produk</th>
+              <th style="width:110px;">Tgl Mulai</th>
+              <th class="text-right" style="width:130px;">BBB</th>
+              <th class="text-right" style="width:130px;">BTKL</th>
+              <th class="text-right" style="width:130px;">BOP</th>
+              <th class="text-right" style="width:150px;">Total BDP</th>
+            </tr>
+          </thead>
+          <tbody id="tabelBDP"></tbody>
+          <tfoot>
+            <tr style="background:var(--primary-light); font-weight:700;">
+              <td colspan="6" class="text-right">TOTAL NILAI BDP</td>
+              <td class="text-right" id="footerTotal">Rp 0</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== SPK SELESAI TERBARU (referensi) ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">✅ SPK Selesai Terbaru</h2>
+        <span class="text-muted" style="font-size:0.85rem;">BDP = Rp 0 (sudah pindah ke Barang Jadi)</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr><th>No SPK</th><th>Produk</th><th style="width:110px;">Tgl Selesai</th><th class="text-right" style="width:150px;">Total HPP (sudah pindah)</th></tr>
+          </thead>
+          <tbody id="tabelSelesai"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getSPK() { return Store.get('spk', []) || []; }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getPakai() { return Store.get('pemakaian_bahan', []) || []; }
+    function getBTKL() { return Store.get('btkl', []) || []; }
+    function getBOP() { return Store.get('bop_dibebankan', []) || []; }
+    function getHasil() { return Store.get('hasil_produksi', []) || []; }
+
+    function hitungBiaya(spkId) {
+      const bbb = getPakai().filter(p => p.spkId === spkId).reduce((s, p) => s + p.totalNilai, 0);
+      const btkl = getBTKL().filter(b => b.spkId === spkId).reduce((s, b) => s + b.totalNilai, 0);
+      const bop = getBOP().filter(b => b.spkId === spkId).reduce((s, b) => s + b.totalNilai, 0);
+      return { bbb, btkl, bop, total: bbb + btkl + bop };
+    }
+
+    function render() {
+      const spk = getSPK();
+      const produk = getProduk();
+      const berjalan = spk.filter(s => s.status === 'Berjalan');
+
+      document.getElementById('jmlSPK').textContent = berjalan.length;
+
+      const tbody = document.getElementById('tabelBDP');
+      let totalBDP = 0;
+
+      if (berjalan.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Tidak ada SPK yang sedang berjalan.</td></tr>`;
+      } else {
+        tbody.innerHTML = berjalan.map(s => {
+          const p = produk.find(x => x.id === s.produkId);
+          const biaya = hitungBiaya(s.id);
+          totalBDP += biaya.total;
+
+          return `
+            <tr>
+              <td><strong>${esc(s.noSPK)}</strong></td>
+              <td>${esc(p ? p.nama : '?')}</td>
+              <td>${Fmt.tanggal(s.tglMulai)}</td>
+              <td class="text-right">${Fmt.rupiah(biaya.bbb)}</td>
+              <td class="text-right">${Fmt.rupiah(biaya.btkl)}</td>
+              <td class="text-right">${Fmt.rupiah(biaya.bop)}</td>
+              <td class="text-right"><strong>${Fmt.rupiah(biaya.total)}</strong></td>
+            </tr>`;
+        }).join('');
+      }
+
+      document.getElementById('totalBDP').textContent = Fmt.rupiah(totalBDP);
+      document.getElementById('footerTotal').textContent = Fmt.rupiah(totalBDP);
+
+      // SPK Selesai terbaru
+      const hasil = getHasil().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 10);
+      const tbodySelesai = document.getElementById('tabelSelesai');
+
+      if (hasil.length === 0) {
+        tbodySelesai.innerHTML = `<tr><td colspan="4" class="table-empty">Belum ada SPK yang selesai.</td></tr>`;
+      } else {
+        tbodySelesai.innerHTML = hasil.map(h => {
+          const p = produk.find(x => x.id === h.produkId);
+          return `
+            <tr>
+              <td>${esc(h.noSPK)}</td>
+              <td>${esc(p ? p.nama : '?')}</td>
+              <td>${Fmt.tanggal(h.tglSelesai)}</td>
+              <td class="text-right">${Fmt.rupiah(h.totalHPP)}</td>
+            </tr>`;
+        }).join('');
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
