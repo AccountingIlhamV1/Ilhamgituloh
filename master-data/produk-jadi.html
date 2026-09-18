@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Produk Jadi — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span>Master Data</span>
+        <span>/</span>
+        <span class="current">Produk Jadi</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📦 Produk Jadi</h1>
+      <p class="subtitle">
+        Data produk selesai (finished goods): kode, nama, satuan,
+        harga jual, dan target produksi. Produk ini nanti dihasilkan
+        dari proses produksi berdasarkan <strong>BOM</strong>.
+      </p>
+    </section>
+
+    <!-- Ringkasan -->
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📦</div>
+          <h3 id="totalProduk">0</h3>
+          <p>Total Produk Jadi</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">💰</div>
+          <h3 id="totalNilaiJual">Rp 0</h3>
+          <p>Total Nilai Jual (Stok)</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🏷️</div>
+          <h3 id="totalStok">0</h3>
+          <p>Total Unit Stok Jadi</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alert -->
+    <div class="alert alert-info">
+      💡 <strong>Tips:</strong> Klik <strong>"Isi Contoh Produk Jadi"</strong>
+      untuk memuat contoh produk (kemeja, kaos, dll.) — siap dipakai di BOM.
+    </div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Produk Jadi</h2>
+
+      <form id="formPJ" autocomplete="off">
+        <input type="hidden" id="pjId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="kode">Kode Produk <span class="required">*</span></label>
+            <input type="text" id="kode" class="form-control" placeholder="PJ-0001" required />
+            <div class="form-hint">Kode unik produk jadi</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="kategori">Kategori</label>
+            <select id="kategori" class="form-select">
+              <option value="Pakaian">👕 Pakaian</option>
+              <option value="Aksesoris">🎒 Aksesoris</option>
+              <option value="Elektronik">🔌 Elektronik</option>
+              <option value="Makanan">🍱 Makanan</option>
+              <option value="Minuman">🥤 Minuman</option>
+              <option value="Furniture">🪑 Furniture</option>
+              <option value="Lainnya">📎 Lainnya</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="nama">Nama Produk <span class="required">*</span></label>
+          <input type="text" id="nama" class="form-control"
+                 placeholder="Contoh: Kemeja Pria Lengan Panjang" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="satuan">Satuan <span class="required">*</span></label>
+            <select id="satuan" class="form-select" required>
+              <option value="pcs">pcs</option>
+              <option value="unit">unit</option>
+              <option value="lusin">lusin</option>
+              <option value="box">box</option>
+              <option value="pack">pack</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="hargaJual">Harga Jual (Rp) <span class="required">*</span></label>
+            <input type="number" id="hargaJual" class="form-control"
+                   placeholder="0" min="0" step="any" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="hargaPokok">Harga Pokok Standar (Rp)</label>
+            <input type="number" id="hargaPokok" class="form-control"
+                   placeholder="0" min="0" step="any" value="0" />
+            <div class="form-hint">Estimasi biaya produksi per unit (opsional)</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="stok">Stok Saat Ini</label>
+            <input type="number" id="stok" class="form-control"
+                   placeholder="0" min="0" step="any" value="0" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="target">Target Produksi / Bulan</label>
+            <input type="number" id="target" class="form-control"
+                   placeholder="0" min="0" step="any" value="0" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            💾 <span id="btnSubmitText">Simpan Produk</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+          <button type="button" class="btn btn-accent" id="btnSeed">📥 Isi Contoh Produk Jadi</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== TABEL ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Produk Jadi</h2>
+        <div class="flex gap-8">
+          <input type="text" id="search" class="form-control"
+                 placeholder="🔍 Cari nama / kode..." style="width:auto; min-width:180px;" />
+          <select id="filterKategori" class="form-select" style="width:auto;">
+            <option value="">Semua Kategori</option>
+            <option value="Pakaian">👕 Pakaian</option>
+            <option value="Aksesoris">🎒 Aksesoris</option>
+            <option value="Elektronik">🔌 Elektronik</option>
+            <option value="Makanan">🍱 Makanan</option>
+            <option value="Minuman">🥤 Minuman</option>
+            <option value="Furniture">🪑 Furniture</option>
+            <option value="Lainnya">📎 Lainnya</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:100px;">Kode</th>
+              <th>Nama Produk</th>
+              <th style="width:130px;">Kategori</th>
+              <th class="text-center" style="width:80px;">Satuan</th>
+              <th class="text-right" style="width:120px;">Harga Jual</th>
+              <th class="text-right" style="width:130px;">HPP Standar</th>
+              <th class="text-right" style="width:90px;">Stok</th>
+              <th class="text-right" style="width:110px;">Margin</th>
+              <th class="text-center" style="width:120px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelPJ"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       PRODUK JADI — CRUD
+       ============================================================ */
+
+    const KEY = 'produk_jadi';
+
+    function getDaftar() {
+      return Store.get(KEY, []) || [];
+    }
+    function setDaftar(list) {
+      Store.set(KEY, list);
+    }
+
+    // ===== RENDER RINGKASAN =====
+    function renderRingkasan() {
+      const list = getDaftar();
+      const totalNilaiJual = list.reduce((s, p) => s + (Number(p.stok) * Number(p.hargaJual)), 0);
+      const totalStok = list.reduce((s, p) => s + Number(p.stok), 0);
+
+      document.getElementById('totalProduk').textContent = list.length;
+      document.getElementById('totalNilaiJual').textContent = Fmt.rupiah(totalNilaiJual);
+      document.getElementById('totalStok').textContent = Fmt.angka(totalStok);
+    }
+
+    // ===== RENDER TABEL =====
+    function renderTabel() {
+      const q = document.getElementById('search').value.toLowerCase();
+      const filter = document.getElementById('filterKategori').value;
+      let list = getDaftar();
+
+      if (q) {
+        list = list.filter(p =>
+          (p.nama || '').toLowerCase().includes(q) ||
+          (p.kode || '').toLowerCase().includes(q)
+        );
+      }
+      if (filter) {
+        list = list.filter(p => p.kategori === filter);
+      }
+
+      list.sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+
+      const tbody = document.getElementById('tabelPJ');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="table-empty">
+              Belum ada produk jadi. Klik <strong>"Isi Contoh Produk Jadi"</strong>
+              untuk memuat contoh. 📦
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => {
+        const hpp = Number(p.hargaPokok) || 0;
+        const margin = hpp > 0
+          ? ((Number(p.hargaJual) - hpp) / hpp * 100).toFixed(1) + '%'
+          : '-';
+        const marginBadge = hpp > 0
+          ? (Number(p.hargaJual) > hpp
+              ? `<span class="badge badge-success">${margin}</span>`
+              : `<span class="badge badge-danger">${margin}</span>`)
+          : '-';
+
+        return `
+          <tr>
+            <td><strong>${esc(p.kode)}</strong></td>
+            <td>${esc(p.nama)}</td>
+            <td><span class="badge badge-muted">${esc(p.kategori || '-')}</span></td>
+            <td class="text-center">${esc(p.satuan)}</td>
+            <td class="text-right">${Fmt.rupiah(p.hargaJual)}</td>
+            <td class="text-right">${hpp > 0 ? Fmt.rupiah(hpp) : '-'}</td>
+            <td class="text-right">${Fmt.angka(p.stok)}</td>
+            <td class="text-right">${marginBadge}</td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline" onclick="editPJ('${p.id}')">✏️</button>
+              <button class="btn btn-sm btn-danger" onclick="hapusPJ('${p.id}')">🗑️</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ===== SUBMIT FORM =====
+    document.getElementById('formPJ').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById('pjId').value;
+      const kode = document.getElementById('kode').value.trim();
+      const list = getDaftar();
+
+      const dup = list.find(p => p.kode === kode && p.id !== id);
+      if (dup) {
+        notify('❌ Kode produk sudah dipakai!', 'danger');
+        return;
+      }
+
+      const data = {
+        id: id || IDGen.generate('PJ'),
+        kode,
+        nama: document.getElementById('nama').value.trim(),
+        kategori: document.getElementById('kategori').value,
+        satuan: document.getElementById('satuan').value,
+        hargaJual: Number(document.getElementById('hargaJual').value) || 0,
+        hargaPokok: Number(document.getElementById('hargaPokok').value) || 0,
+        stok: Number(document.getElementById('stok').value) || 0,
+        target: Number(document.getElementById('target').value) || 0,
+      };
+
+      const idx = list.findIndex(p => p.id === data.id);
+
+      if (idx >= 0) {
+        list[idx] = data;
+        notify('✅ Produk jadi diperbarui', 'success');
+      } else {
+        list.push(data);
+        notify('✅ Produk jadi ditambahkan', 'success');
+      }
+
+      setDaftar(list);
+      resetForm();
+      renderTabel();
+      renderRingkasan();
+    });
+
+    // ===== EDIT =====
+    function editPJ(id) {
+      const p = getDaftar().find(x => x.id === id);
+      if (!p) return;
+
+      document.getElementById('pjId').value = p.id;
+      document.getElementById('kode').value = p.kode;
+      document.getElementById('nama').value = p.nama;
+      document.getElementById('kategori').value = p.kategori || 'Pakaian';
+      document.getElementById('satuan').value = p.satuan;
+      document.getElementById('hargaJual').value = p.hargaJual;
+      document.getElementById('hargaPokok').value = p.hargaPokok || 0;
+      document.getElementById('stok').value = p.stok;
+      document.getElementById('target').value = p.target || 0;
+
+      document.getElementById('formTitle').textContent = '✏️ Edit Produk Jadi';
+      document.getElementById('btnSubmitText').textContent = 'Update Produk';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ===== HAPUS =====
+    function hapusPJ(id) {
+      const p = getDaftar().find(x => x.id === id);
+      if (!p) return;
+      if (!confirm(`Yakin hapus "${p.kode} - ${p.nama}"?`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ Produk dihapus', 'warning');
+      renderTabel();
+      renderRingkasan();
+    }
+
+    // ===== RESET FORM =====
+    function resetForm() {
+      document.getElementById('formPJ').reset();
+      document.getElementById('pjId').value = '';
+      document.getElementById('stok').value = 0;
+      document.getElementById('hargaPokok').value = 0;
+      document.getElementById('target').value = 0;
+      document.getElementById('formTitle').textContent = '➕ Tambah Produk Jadi';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Produk';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    // ===== FILTER & SEARCH =====
+    document.getElementById('search').addEventListener('input', renderTabel);
+    document.getElementById('filterKategori').addEventListener('change', renderTabel);
+
+    // ===== SEED DATA =====
+    document.getElementById('btnSeed').addEventListener('click', function () {
+      if (getDaftar().length > 0) {
+        if (!confirm('Data sudah ada. Tambahkan contoh tetap?')) return;
+      }
+
+      const contoh = [
+        { kode: 'PJ-0001', nama: 'Kemeja Pria Lengan Panjang', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 175000, hargaPokok: 110000, stok: 45, target: 100 },
+        { kode: 'PJ-0002', nama: 'Kemeja Pria Lengan Pendek', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 150000, hargaPokok: 95000, stok: 30, target: 80 },
+        { kode: 'PJ-0003', nama: 'Kaos Polos Katun', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 85000, hargaPokok: 50000, stok: 120, target: 200 },
+        { kode: 'PJ-0004', nama: 'Kaos Sablon Custom', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 110000, hargaPokok: 65000, stok: 60, target: 150 },
+        { kode: 'PJ-0005', nama: 'Kemeja Wanita Slim Fit', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 165000, hargaPokok: 105000, stok: 25, target: 80 },
+      ];
+
+      const list = getDaftar();
+      const existing = new Set(list.map(p => p.kode));
+
+      const baru = contoh
+        .filter(c => !existing.has(c.kode))
+        .map(c => ({ id: IDGen.generate('PJ'), ...c }));
+
+      setDaftar([...list, ...baru]);
+      renderTabel();
+      renderRingkasan();
+      notify(`✅ ${baru.length} produk contoh dimuat!`, 'success');
+    });
+
+    // ===== INIT =====
+    renderTabel();
+    renderRingkasan();
+  </script>
+</body>
+  </html>

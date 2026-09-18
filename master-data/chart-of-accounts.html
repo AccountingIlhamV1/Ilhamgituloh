@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chart of Accounts — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span>Master Data</span>
+        <span>/</span>
+        <span class="current">Chart of Accounts</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📋 Chart of Accounts</h1>
+      <p class="subtitle">
+        Daftar akun perusahaan — termasuk akun khusus manufaktur
+        seperti <strong>BDP</strong>, <strong>BOP Sesungguhnya</strong>,
+        dan <strong>BOP Dibebankan</strong>.
+      </p>
+    </section>
+
+    <!-- Ringkasan -->
+    <section class="menu-group">
+      <div class="card-grid" id="ringkasanGrid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">💵</div>
+          <h3 id="totalAset">0</h3>
+          <p>Akun Aset</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">💳</div>
+          <h3 id="totalLiabilitas">0</h3>
+          <p>Akun Liabilitas</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🏦</div>
+          <h3 id="totalEkuitas">0</h3>
+          <p>Akun Ekuitas</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📈</div>
+          <h3 id="totalPendapatan">0</h3>
+          <p>Akun Pendapatan</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📉</div>
+          <h3 id="totalBeban">0</h3>
+          <p>Akun Beban</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alert -->
+    <div class="alert alert-info">
+      💡 <strong>Tips:</strong> Klik tombol
+      <strong>"Isi CoA Contoh Manufaktur"</strong> untuk memuat
+      daftar akun standar — tinggal pakai!
+    </div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Akun Baru</h2>
+
+      <form id="formAkun" autocomplete="off">
+        <input type="hidden" id="akunId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="kode">
+              Kode Akun <span class="required">*</span>
+            </label>
+            <input type="text" id="kode" class="form-control"
+                   placeholder="Contoh: 1101" required />
+            <div class="form-hint">Kode unik untuk akun ini</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="tipe">
+              Tipe Akun <span class="required">*</span>
+            </label>
+            <select id="tipe" class="form-select" required>
+              <option value="">— Pilih Tipe —</option>
+              <option value="Aset">💵 Aset</option>
+              <option value="Liabilitas">💳 Liabilitas</option>
+              <option value="Ekuitas">🏦 Ekuitas</option>
+              <option value="Pendapatan">📈 Pendapatan</option>
+              <option value="Beban">📉 Beban</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="nama">
+            Nama Akun <span class="required">*</span>
+          </label>
+          <input type="text" id="nama" class="form-control"
+                 placeholder="Contoh: Kas, Piutang Usaha, BDP" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="saldoNormal">Saldo Normal</label>
+            <select id="saldoNormal" class="form-select">
+              <option value="Debit">Debit</option>
+              <option value="Kredit">Kredit</option>
+            </select>
+            <div class="form-hint">Otomatis menyesuaikan tipe</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="kategori">Kategori Manufaktur</label>
+            <select id="kategori" class="form-select">
+              <option value="">— Tidak khusus —</option>
+              <option value="Bahan Baku">🧱 Bahan Baku</option>
+              <option value="BDP">🔧 Barang Dalam Proses</option>
+              <option value="Barang Jadi">📦 Barang Jadi</option>
+              <option value="BOP">⚙️ Overhead Pabrik</option>
+              <option value="BTKL">👷 Tenaga Kerja Langsung</option>
+            </select>
+            <div class="form-hint">Khusus akun manufaktur</div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            💾 <span id="btnSubmitText">Simpan Akun</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="btnReset">
+            🔄 Reset Form
+          </button>
+          <button type="button" class="btn btn-accent" id="btnSeed">
+            📥 Isi CoA Contoh Manufaktur
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== TABEL ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Akun</h2>
+        <div class="flex gap-8">
+          <select id="filterTipe" class="form-select" style="width:auto;">
+            <option value="">Semua Tipe</option>
+            <option value="Aset">💵 Aset</option>
+            <option value="Liabilitas">💳 Liabilitas</option>
+            <option value="Ekuitas">🏦 Ekuitas</option>
+            <option value="Pendapatan">📈 Pendapatan</option>
+            <option value="Beban">📉 Beban</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:90px;">Kode</th>
+              <th>Nama Akun</th>
+              <th style="width:110px;">Tipe</th>
+              <th style="width:100px;" class="text-center">Saldo Normal</th>
+              <th style="width:150px;">Kategori MFG</th>
+              <th style="width:130px;" class="text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelAkun"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       CHART OF ACCOUNTS — CRUD
+       ============================================================ */
+
+    const KEY = 'chart_of_accounts';
+
+    // ===== AMBIL DATA =====
+    function getDaftar() {
+      return Store.get(KEY, []) || [];
+    }
+    function setDaftar(list) {
+      Store.set(KEY, list);
+    }
+
+    // ===== AUTO SUGGEST SALDO NORMAL =====
+    const saldoNormalMap = {
+      Aset: 'Debit',
+      Liabilitas: 'Kredit',
+      Ekuitas: 'Kredit',
+      Pendapatan: 'Kredit',
+      Beban: 'Debit',
+    };
+
+    document.getElementById('tipe').addEventListener('change', function () {
+      const t = this.value;
+      if (saldoNormalMap[t]) {
+        document.getElementById('saldoNormal').value = saldoNormalMap[t];
+      }
+    });
+
+    // ===== WARNA BADGE TIPE =====
+    function badgeTipe(tipe) {
+      const map = {
+        Aset: 'badge-primary',
+        Liabilitas: 'badge-warning',
+        Ekuitas: 'badge-success',
+        Pendapatan: 'badge-success',
+        Beban: 'badge-danger',
+      };
+      return `<span class="badge ${map[tipe] || 'badge-muted'}">${esc(tipe)}</span>`;
+    }
+
+    // ===== RENDER RINGKASAN =====
+    function renderRingkasan() {
+      const list = getDaftar();
+      const count = (tipe) => list.filter(a => a.tipe === tipe).length;
+      document.getElementById('totalAset').textContent = count('Aset');
+      document.getElementById('totalLiabilitas').textContent = count('Liabilitas');
+      document.getElementById('totalEkuitas').textContent = count('Ekuitas');
+      document.getElementById('totalPendapatan').textContent = count('Pendapatan');
+      document.getElementById('totalBeban').textContent = count('Beban');
+    }
+
+    // ===== RENDER TABEL =====
+    function renderTabel() {
+      const filter = document.getElementById('filterTipe').value;
+      let list = getDaftar();
+
+      if (filter) {
+        list = list.filter(a => a.tipe === filter);
+      }
+
+      // Sort by kode
+      list.sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+
+      const tbody = document.getElementById('tabelAkun');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="table-empty">
+              Belum ada akun. Klik <strong>"Isi CoA Contoh Manufaktur"</strong>
+              untuk memuat daftar akun standar. 📋
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(a => `
+        <tr>
+          <td><strong>${esc(a.kode)}</strong></td>
+          <td>${esc(a.nama)}</td>
+          <td>${badgeTipe(a.tipe)}</td>
+          <td class="text-center">
+            <span class="badge ${a.saldoNormal === 'Debit' ? 'badge-muted' : 'badge-warning'}">
+              ${esc(a.saldoNormal)}
+            </span>
+          </td>
+          <td>${a.kategori ? `<span class="badge badge-primary">${esc(a.kategori)}</span>` : '-'}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline" onclick="editAkun('${a.id}')">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="hapusAkun('${a.id}')">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // ===== SUBMIT FORM =====
+    document.getElementById('formAkun').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById('akunId').value;
+      const kode = document.getElementById('kode').value.trim();
+      const list = getDaftar();
+
+      // Cek duplikat kode
+      const dup = list.find(a => a.kode === kode && a.id !== id);
+      if (dup) {
+        notify('❌ Kode akun sudah dipakai!', 'danger');
+        return;
+      }
+
+      const data = {
+        id: id || IDGen.generate('AKN'),
+        kode,
+        nama: document.getElementById('nama').value.trim(),
+        tipe: document.getElementById('tipe').value,
+        saldoNormal: document.getElementById('saldoNormal').value,
+        kategori: document.getElementById('kategori').value,
+      };
+
+      const idx = list.findIndex(a => a.id === data.id);
+
+      if (idx >= 0) {
+        list[idx] = data;
+        notify('✅ Akun berhasil diperbarui', 'success');
+      } else {
+        list.push(data);
+        notify('✅ Akun berhasil ditambahkan', 'success');
+      }
+
+      setDaftar(list);
+      resetForm();
+      renderTabel();
+      renderRingkasan();
+    });
+
+    // ===== EDIT =====
+    function editAkun(id) {
+      const a = getDaftar().find(x => x.id === id);
+      if (!a) return;
+
+      document.getElementById('akunId').value = a.id;
+      document.getElementById('kode').value = a.kode;
+      document.getElementById('nama').value = a.nama;
+      document.getElementById('tipe').value = a.tipe;
+      document.getElementById('saldoNormal').value = a.saldoNormal;
+      document.getElementById('kategori').value = a.kategori || '';
+
+      document.getElementById('formTitle').textContent = '✏️ Edit Akun';
+      document.getElementById('btnSubmitText').textContent = 'Update Akun';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ===== HAPUS =====
+    function hapusAkun(id) {
+      const a = getDaftar().find(x => x.id === id);
+      if (!a) return;
+      if (!confirm(`Yakin hapus akun "${a.kode} - ${a.nama}"?`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ Akun dihapus', 'warning');
+      renderTabel();
+      renderRingkasan();
+    }
+
+    // ===== RESET FORM =====
+    function resetForm() {
+      document.getElementById('formAkun').reset();
+      document.getElementById('akunId').value = '';
+      document.getElementById('formTitle').textContent = '➕ Tambah Akun Baru';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Akun';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    // ===== FILTER =====
+    document.getElementById('filterTipe').addEventListener('change', renderTabel);
+
+    // ===== SEED DATA CONTOH MANUFAKTUR =====
+    document.getElementById('btnSeed').addEventListener('click', function () {
+      if (getDaftar().length > 0) {
+        if (!confirm('CoA sudah ada isinya. Timpa dengan CoA contoh?')) return;
+      }
+
+      const contoh = [
+        // ===== ASET =====
+        { kode: '1101', nama: 'Kas', tipe: 'Aset', saldoNormal: 'Debit', kategori: '' },
+        { kode: '1102', nama: 'Bank', tipe: 'Aset', saldoNormal: 'Debit', kategori: '' },
+        { kode: '1103', nama: 'Piutang Usaha', tipe: 'Aset', saldoNormal: 'Debit', kategori: '' },
+        { kode: '1104', nama: 'Persediaan Bahan Baku', tipe: 'Aset', saldoNormal: 'Debit', kategori: 'Bahan Baku' },
+        { kode: '1105', nama: 'Persediaan Barang Dalam Proses', tipe: 'Aset', saldoNormal: 'Debit', kategori: 'BDP' },
+        { kode: '1106', nama: 'Persediaan Barang Jadi', tipe: 'Aset', saldoNormal: 'Debit', kategori: 'Barang Jadi' },
+        { kode: '1201', nama: 'Tanah', tipe: 'Aset', saldoNormal: 'Debit', kategori: '' },
+        { kode: '1202', nama: 'Bangunan Pabrik', tipe: 'Aset', saldoNormal: 'Debit', kategori: '' },
+        { kode: '1203', nama: 'Mesin dan Peralatan', tipe: 'Aset', saldoNormal: 'Debit', kategori: '' },
+        { kode: '1204', nama: 'Akumulasi Penyusutan Bangunan', tipe: 'Aset', saldoNormal: 'Kredit', kategori: '' },
+        { kode: '1205', nama: 'Akumulasi Penyusutan Mesin', tipe: 'Aset', saldoNormal: 'Kredit', kategori: '' },
+
+        // ===== LIABILITAS =====
+        { kode: '2101', nama: 'Utang Usaha', tipe: 'Liabilitas', saldoNormal: 'Kredit', kategori: '' },
+        { kode: '2102', nama: 'Utang Gaji', tipe: 'Liabilitas', saldoNormal: 'Kredit', kategori: '' },
+        { kode: '2103', nama: 'Utang Bank', tipe: 'Liabilitas', saldoNormal: 'Kredit', kategori: '' },
+
+        // ===== EKUITAS =====
+        { kode: '3101', nama: 'Modal Saham', tipe: 'Ekuitas', saldoNormal: 'Kredit', kategori: '' },
+        { kode: '3102', nama: 'Laba Ditahan', tipe: 'Ekuitas', saldoNormal: 'Kredit', kategori: '' },
+
+        // ===== PENDAPATAN =====
+        { kode: '4101', nama: 'Penjualan', tipe: 'Pendapatan', saldoNormal: 'Kredit', kategori: '' },
+        { kode: '4102', nama: 'Retur Penjualan', tipe: 'Pendapatan', saldoNormal: 'Debit', kategori: '' },
+
+        // ===== BEBAN =====
+        { kode: '5101', nama: 'Harga Pokok Penjualan', tipe: 'Beban', saldoNormal: 'Debit', kategori: '' },
+        { kode: '5102', nama: 'Beban Gaji', tipe: 'Beban', saldoNormal: 'Debit', kategori: '' },
+        { kode: '5103', nama: 'Beban Listrik dan Air', tipe: 'Beban', saldoNormal: 'Debit', kategori: '' },
+        { kode: '5104', nama: 'Beban Penyusutan', tipe: 'Beban', saldoNormal: 'Debit', kategori: '' },
+
+        // ===== AKUN KHUSUS MANUFAKTUR =====
+        { kode: '5201', nama: 'BOP Sesungguhnya', tipe: 'Beban', saldoNormal: 'Debit', kategori: 'BOP' },
+        { kode: '5202', nama: 'BOP Dibebankan', tipe: 'Beban', saldoNormal: 'Kredit', kategori: 'BOP' },
+        { kode: '5203', nama: 'Selisih BOP', tipe: 'Beban', saldoNormal: 'Debit', kategori: 'BOP' },
+      ];
+
+      const list = contoh.map(c => ({
+        id: IDGen.generate('AKN'),
+        ...c,
+      }));
+
+      setDaftar(list);
+      renderTabel();
+      renderRingkasan();
+      notify('✅ CoA contoh manufaktur berhasil dimuat!', 'success');
+    });
+
+    // ===== INIT =====
+    renderTabel();
+    renderRingkasan();
+  </script>
+</body>
+          </html>

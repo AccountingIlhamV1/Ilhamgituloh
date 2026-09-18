@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gudang — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Master Data</a>
+        <span>/</span>
+        <span class="current">Gudang</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🏬 Gudang</h1>
+      <p class="subtitle">
+        Lokasi penyimpanan: gudang bahan baku, barang dalam proses (BDP),
+        dan barang jadi — dipakai untuk pemisahan laporan persediaan.
+      </p>
+    </section>
+
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🏬</div>
+          <h3 id="totalItem">0</h3>
+          <p>Total Gudang</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="alert alert-info">
+      💡 <strong>Tips:</strong> Klik <strong>"Isi Contoh Gudang"</strong> untuk memuat data contoh.
+    </div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Gudang</h2>
+
+      <form id="formGdg" autocomplete="off">
+        <input type="hidden" id="gdgId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="kode">Kode <span class="required">*</span></label>
+            <input type="text" id="kode" class="form-control" placeholder="GDG-0001" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nama">Nama Gudang <span class="required">*</span></label>
+            <input type="text" id="nama" class="form-control" placeholder="Contoh: Gudang Bahan Baku Utama" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="jenis">Jenis Gudang <span class="required">*</span></label>
+            <select id="jenis" class="form-select" required>
+              <option value="Bahan Baku">🧱 Bahan Baku</option>
+              <option value="BDP">🔧 Barang Dalam Proses</option>
+              <option value="Barang Jadi">📦 Barang Jadi</option>
+              <option value="Umum">🏬 Umum / Campuran</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="lokasi">Lokasi</label>
+            <input type="text" id="lokasi" class="form-control" placeholder="Contoh: Lantai 1, Blok A" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="keterangan">Keterangan</label>
+          <input type="text" id="keterangan" class="form-control" placeholder="Opsional" />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 <span id="btnSubmitText">Simpan Gudang</span></button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+          <button type="button" class="btn btn-accent" id="btnSeed">📥 Isi Contoh Gudang</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== TABEL ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Gudang</h2>
+        <select id="filterJenis" class="form-select" style="width:auto;">
+          <option value="">Semua Jenis</option>
+          <option value="Bahan Baku">🧱 Bahan Baku</option>
+          <option value="BDP">🔧 Barang Dalam Proses</option>
+          <option value="Barang Jadi">📦 Barang Jadi</option>
+          <option value="Umum">🏬 Umum / Campuran</option>
+        </select>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:100px;">Kode</th>
+              <th>Nama Gudang</th>
+              <th style="width:150px;">Jenis</th>
+              <th>Lokasi</th>
+              <th class="text-center" style="width:110px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelGdg"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       GUDANG — CRUD
+       ============================================================ */
+
+    const KEY = 'gudang';
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+
+    function renderRingkasan() {
+      document.getElementById('totalItem').textContent = getDaftar().length;
+    }
+
+    function badgeJenis(jenis) {
+      const map = { 'Bahan Baku': 'badge-primary', 'BDP': 'badge-warning', 'Barang Jadi': 'badge-success', 'Umum': 'badge-muted' };
+      const icon = { 'Bahan Baku': '🧱', 'BDP': '🔧', 'Barang Jadi': '📦', 'Umum': '🏬' };
+      return `<span class="badge ${map[jenis] || 'badge-muted'}">${icon[jenis] || ''} ${esc(jenis)}</span>`;
+    }
+
+    function renderTabel() {
+      const filter = document.getElementById('filterJenis').value;
+      let list = getDaftar();
+      if (filter) list = list.filter(g => g.jenis === filter);
+      list.sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+
+      const tbody = document.getElementById('tabelGdg');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Belum ada gudang. Klik "Isi Contoh Gudang". 🏬</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(g => `
+        <tr>
+          <td><strong>${esc(g.kode)}</strong></td>
+          <td>${esc(g.nama)}</td>
+          <td>${badgeJenis(g.jenis)}</td>
+          <td>${esc(g.lokasi || '-')}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline" onclick="editGdg('${g.id}')">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="hapusGdg('${g.id}')">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('formGdg').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById('gdgId').value;
+      const kode = document.getElementById('kode').value.trim();
+      const list = getDaftar();
+
+      const dup = list.find(g => g.kode === kode && g.id !== id);
+      if (dup) { notify('❌ Kode gudang sudah dipakai!', 'danger'); return; }
+
+      const data = {
+        id: id || IDGen.generate('GDG'),
+        kode,
+        nama: document.getElementById('nama').value.trim(),
+        jenis: document.getElementById('jenis').value,
+        lokasi: document.getElementById('lokasi').value.trim(),
+        keterangan: document.getElementById('keterangan').value.trim(),
+      };
+
+      const idx = list.findIndex(g => g.id === data.id);
+      if (idx >= 0) { list[idx] = data; notify('✅ Gudang diperbarui', 'success'); }
+      else { list.push(data); notify('✅ Gudang ditambahkan', 'success'); }
+
+      setDaftar(list);
+      resetForm();
+      renderTabel();
+      renderRingkasan();
+    });
+
+    function editGdg(id) {
+      const g = getDaftar().find(x => x.id === id);
+      if (!g) return;
+
+      document.getElementById('gdgId').value = g.id;
+      document.getElementById('kode').value = g.kode;
+      document.getElementById('nama').value = g.nama;
+      document.getElementById('jenis').value = g.jenis;
+      document.getElementById('lokasi').value = g.lokasi || '';
+      document.getElementById('keterangan').value = g.keterangan || '';
+
+      document.getElementById('formTitle').textContent = '✏️ Edit Gudang';
+      document.getElementById('btnSubmitText').textContent = 'Update Gudang';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hapusGdg(id) {
+      const g = getDaftar().find(x => x.id === id);
+      if (!g) return;
+      if (!confirm(`Yakin hapus gudang "${g.nama}"?`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ Gudang dihapus', 'warning');
+      renderTabel();
+      renderRingkasan();
+    }
+
+    function resetForm() {
+      document.getElementById('formGdg').reset();
+      document.getElementById('gdgId').value = '';
+      document.getElementById('formTitle').textContent = '➕ Tambah Gudang';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Gudang';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+    document.getElementById('filterJenis').addEventListener('change', renderTabel);
+
+    document.getElementById('btnSeed').addEventListener('click', function () {
+      if (getDaftar().length > 0 && !confirm('Data sudah ada. Timpa dengan contoh?')) return;
+
+      const contoh = [
+        { kode: 'GDG-0001', nama: 'Gudang Bahan Baku Utama', jenis: 'Bahan Baku', lokasi: 'Lantai 1, Blok A', keterangan: '' },
+        { kode: 'GDG-0002', nama: 'Area Produksi (BDP)', jenis: 'BDP', lokasi: 'Lantai 2', keterangan: '' },
+        { kode: 'GDG-0003', nama: 'Gudang Barang Jadi', jenis: 'Barang Jadi', lokasi: 'Lantai 1, Blok B', keterangan: '' },
+      ];
+
+      setDaftar(contoh.map(c => ({ id: IDGen.generate('GDG'), ...c })));
+      renderTabel();
+      renderRingkasan();
+      notify('✅ Contoh gudang dimuat!', 'success');
+    });
+
+    renderTabel();
+    renderRingkasan();
+  </script>
+</body>
+</html>

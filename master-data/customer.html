@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Master Data</a>
+        <span>/</span>
+        <span class="current">Customer</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🚚 Customer</h1>
+      <p class="subtitle">
+        Data pelanggan barang jadi: alamat, kontak, dan termin pembayaran —
+        dipakai di modul <strong>Penjualan</strong>.
+      </p>
+    </section>
+
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🚚</div>
+          <h3 id="totalItem">0</h3>
+          <p>Total Customer</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="alert alert-info">
+      💡 <strong>Tips:</strong> Klik <strong>"Isi Contoh Customer"</strong> untuk memuat data contoh.
+    </div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Customer</h2>
+
+      <form id="formCust" autocomplete="off">
+        <input type="hidden" id="custId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="kode">Kode <span class="required">*</span></label>
+            <input type="text" id="kode" class="form-control" placeholder="CUST-0001" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nama">Nama Customer <span class="required">*</span></label>
+            <input type="text" id="nama" class="form-control" placeholder="Contoh: PT Sejahtera Retail" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="alamat">Alamat</label>
+          <textarea id="alamat" class="form-control" rows="2" placeholder="Alamat customer"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="telepon">Telepon</label>
+            <input type="text" id="telepon" class="form-control" placeholder="021-1234567" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="email">Email</label>
+            <input type="email" id="email" class="form-control" placeholder="info@customer.co.id" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="termin">Termin Penjualan (hari)</label>
+            <input type="number" id="termin" class="form-control" min="0" placeholder="30" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 <span id="btnSubmitText">Simpan Customer</span></button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+          <button type="button" class="btn btn-accent" id="btnSeed">📥 Isi Contoh Customer</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== TABEL ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Customer</h2>
+        <input type="text" id="search" class="form-control" placeholder="🔍 Cari nama / kode..." style="width:auto; min-width:200px;" />
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:100px;">Kode</th>
+              <th>Nama</th>
+              <th>Kontak</th>
+              <th class="text-center" style="width:120px;">Termin</th>
+              <th class="text-center" style="width:110px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelCust"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       CUSTOMER — CRUD
+       ============================================================ */
+
+    const KEY = 'customer';
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+
+    function renderRingkasan() {
+      document.getElementById('totalItem').textContent = getDaftar().length;
+    }
+
+    function renderTabel() {
+      const q = document.getElementById('search').value.toLowerCase();
+      let list = getDaftar();
+      if (q) {
+        list = list.filter(s => (s.nama || '').toLowerCase().includes(q) || (s.kode || '').toLowerCase().includes(q));
+      }
+      list.sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+
+      const tbody = document.getElementById('tabelCust');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Belum ada customer. Klik "Isi Contoh Customer". 🚚</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(s => `
+        <tr>
+          <td><strong>${esc(s.kode)}</strong></td>
+          <td>${esc(s.nama)}<br><span class="text-muted" style="font-size:0.82rem;">${esc(s.alamat || '-')}</span></td>
+          <td>${esc(s.telepon || '-')}<br><span class="text-muted" style="font-size:0.82rem;">${esc(s.email || '-')}</span></td>
+          <td class="text-center">${s.termin ? s.termin + ' hari' : '-'}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline" onclick="editCust('${s.id}')">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="hapusCust('${s.id}')">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('formCust').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById('custId').value;
+      const kode = document.getElementById('kode').value.trim();
+      const list = getDaftar();
+
+      const dup = list.find(s => s.kode === kode && s.id !== id);
+      if (dup) { notify('❌ Kode customer sudah dipakai!', 'danger'); return; }
+
+      const data = {
+        id: id || IDGen.generate('CUST'),
+        kode,
+        nama: document.getElementById('nama').value.trim(),
+        alamat: document.getElementById('alamat').value.trim(),
+        telepon: document.getElementById('telepon').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        termin: Number(document.getElementById('termin').value) || 0,
+      };
+
+      const idx = list.findIndex(s => s.id === data.id);
+      if (idx >= 0) { list[idx] = data; notify('✅ Customer diperbarui', 'success'); }
+      else { list.push(data); notify('✅ Customer ditambahkan', 'success'); }
+
+      setDaftar(list);
+      resetForm();
+      renderTabel();
+      renderRingkasan();
+    });
+
+    function editCust(id) {
+      const s = getDaftar().find(x => x.id === id);
+      if (!s) return;
+
+      document.getElementById('custId').value = s.id;
+      document.getElementById('kode').value = s.kode;
+      document.getElementById('nama').value = s.nama;
+      document.getElementById('alamat').value = s.alamat || '';
+      document.getElementById('telepon').value = s.telepon || '';
+      document.getElementById('email').value = s.email || '';
+      document.getElementById('termin').value = s.termin || '';
+
+      document.getElementById('formTitle').textContent = '✏️ Edit Customer';
+      document.getElementById('btnSubmitText').textContent = 'Update Customer';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hapusCust(id) {
+      const s = getDaftar().find(x => x.id === id);
+      if (!s) return;
+      if (!confirm(`Yakin hapus customer "${s.nama}"?`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ Customer dihapus', 'warning');
+      renderTabel();
+      renderRingkasan();
+    }
+
+    function resetForm() {
+      document.getElementById('formCust').reset();
+      document.getElementById('custId').value = '';
+      document.getElementById('formTitle').textContent = '➕ Tambah Customer';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Customer';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+    document.getElementById('search').addEventListener('input', renderTabel);
+
+    document.getElementById('btnSeed').addEventListener('click', function () {
+      if (getDaftar().length > 0 && !confirm('Data sudah ada. Timpa dengan contoh?')) return;
+
+      const contoh = [
+        { kode: 'CUST-0001', nama: 'PT Sejahtera Retail', alamat: 'Jl. Pasar Baru No. 20, Jakarta', telepon: '021-5551234', email: 'order@sejahterasretail.co.id', termin: 30 },
+        { kode: 'CUST-0002', nama: 'UD Makmur Sentosa', alamat: 'Jl. Mangga Dua No. 8, Surabaya', telepon: '031-7778888', email: 'beli@makmursentosa.co.id', termin: 14 },
+      ];
+
+      setDaftar(contoh.map(c => ({ id: IDGen.generate('CUST'), ...c })));
+      renderTabel();
+      renderRingkasan();
+      notify('✅ Contoh customer dimuat!', 'success');
+    });
+
+    renderTabel();
+    renderRingkasan();
+  </script>
+</body>
+</html>

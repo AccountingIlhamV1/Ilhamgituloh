@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Master Data — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span class="current">Master Data</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🗂️ Master Data</h1>
+      <p class="subtitle">
+        Pusat semua data induk — isi dari atas ke bawah: Data Usaha, Chart of
+        Accounts, lalu data produksi (bahan baku, produk jadi, BOM, work center,
+        karyawan), dan terakhir mitra bisnis (supplier, customer, gudang).
+      </p>
+    </section>
+
+    <section class="menu-group">
+      <h2 class="group-title">🏢 Perusahaan &amp; Akuntansi</h2>
+      <div class="card-grid">
+
+        <a href="data-usaha.html" class="menu-card">
+          <div class="card-icon">🏢</div>
+          <h3>Data Usaha</h3>
+          <p>Profil perusahaan, alamat, NPWP, periode/tahun buku, dan pemilihan usaha aktif.</p>
+        </a>
+
+        <a href="chart-of-accounts.html" class="menu-card">
+          <div class="card-icon">📋</div>
+          <h3>Chart of Accounts</h3>
+          <p>Daftar akun termasuk persediaan BB, BDP, BJ, BOP, dan akun manufaktur lainnya.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <section class="menu-group">
+      <h2 class="group-title">🏭 Data Produksi</h2>
+      <div class="card-grid">
+
+        <a href="bahan-baku.html" class="menu-card">
+          <div class="card-icon">🧱</div>
+          <h3>Bahan Baku</h3>
+          <p>Material mentah: kode, nama, satuan, harga beli, stok minimum, dan supplier.</p>
+        </a>
+
+        <a href="produk-jadi.html" class="menu-card">
+          <div class="card-icon">📦</div>
+          <h3>Produk Jadi</h3>
+          <p>Finished goods: kode, nama, satuan, harga jual, dan target produksi.</p>
+        </a>
+
+        <a href="bom.html" class="menu-card">
+          <div class="card-icon">📐</div>
+          <h3>Bill of Materials</h3>
+          <p>Resep produk: komposisi bahan baku &amp; jumlah per 1 unit produk jadi.</p>
+        </a>
+
+        <a href="work-center.html" class="menu-card">
+          <div class="card-icon">⚙️</div>
+          <h3>Work Center</h3>
+          <p>Data mesin / stasiun kerja beserta kapasitas &amp; tarif BOP per jam.</p>
+        </a>
+
+        <a href="karyawan.html" class="menu-card">
+          <div class="card-icon">👷</div>
+          <h3>Karyawan</h3>
+          <p>Tenaga kerja langsung (BTKL) &amp; tidak langsung beserta tarif upah per jam.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <section class="menu-group">
+      <h2 class="group-title">🤝 Mitra &amp; Lokasi</h2>
+      <div class="card-grid">
+
+        <a href="supplier.html" class="menu-card">
+          <div class="card-icon">🚚</div>
+          <h3>Supplier</h3>
+          <p>Vendor bahan baku, termin pembayaran, dan informasi kontak.</p>
+        </a>
+
+        <a href="customer.html" class="menu-card">
+          <div class="card-icon">🛒</div>
+          <h3>Customer</h3>
+          <p>Pelanggan barang jadi, termin penjualan, dan informasi kontak.</p>
+        </a>
+
+        <a href="gudang.html" class="menu-card">
+          <div class="card-icon">🏬</div>
+          <h3>Gudang</h3>
+          <p>Lokasi penyimpanan: gudang bahan baku, BDP, dan barang jadi.</p>
+        </a>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <script src="../assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Usaha — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Master Data</a>
+        <span>/</span>
+        <span class="current">Data Usaha</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🏢 Data Usaha</h1>
+      <p class="subtitle">
+        Kelola profil perusahaan: nama, alamat, NPWP, periode buku,
+        dan pilih salah satu sebagai <strong>usaha aktif</strong>.
+      </p>
+    </section>
+
+    <!-- Alert Info -->
+    <div class="alert alert-info">
+      💡 <strong>Tips:</strong> Usaha yang dipilih sebagai "aktif" akan dipakai
+      di seluruh modul — transaksi, produksi, dan laporan keuangan.
+    </div>
+
+    <!-- ===== FORM INPUT ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Usaha Baru</h2>
+
+      <form id="formUsaha" autocomplete="off">
+        <input type="hidden" id="usahaId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="nama">
+              Nama Usaha <span class="required">*</span>
+            </label>
+            <input type="text" id="nama" class="form-control"
+                   placeholder="Contoh: PT Maju Jaya Manufaktur" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="npwp">NPWP</label>
+            <input type="text" id="npwp" class="form-control"
+                   placeholder="00.000.000.0-000.000" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="alamat">Alamat</label>
+          <textarea id="alamat" class="form-control" rows="2"
+                    placeholder="Jl. Contoh No. 123, Kota, Provinsi"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="telepon">Telepon</label>
+            <input type="text" id="telepon" class="form-control"
+                   placeholder="021-1234567" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="email">Email</label>
+            <input type="email" id="email" class="form-control"
+                   placeholder="info@perusahaan.co.id" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="periode">
+              Periode / Tahun Buku <span class="required">*</span>
+            </label>
+            <input type="text" id="periode" class="form-control"
+                   placeholder="Contoh: 2025" required />
+            <div class="form-hint">Tahun buku akuntansi, misal 2025</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="mataUang">Mata Uang</label>
+            <select id="mataUang" class="form-select">
+              <option value="IDR" selected>IDR — Rupiah</option>
+              <option value="USD">USD — US Dollar</option>
+              <option value="SGD">SGD — Singapore Dollar</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            💾 <span id="btnSubmitText">Simpan Usaha</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="btnReset">
+            🔄 Reset Form
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== TABEL DAFTAR USAHA ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Usaha</h2>
+        <span class="badge badge-primary" id="totalUsaha">0 usaha</span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>Nama Usaha</th>
+              <th>NPWP</th>
+              <th>Periode</th>
+              <th>Mata Uang</th>
+              <th class="text-center" style="width:100px;">Status</th>
+              <th class="text-center" style="width:180px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelUsaha">
+            <!-- diisi JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       DATA USAHA — CRUD dengan localStorage
+       ============================================================ */
+
+    const KEY = 'daftar_usaha';        // key di localStorage
+    const KEY_ACTIVE = 'active_usaha'; // key usaha aktif
+
+    // ===== AMBIL SEMUA USAHA =====
+    function getDaftar() {
+      return Store.get(KEY, []) || [];
+    }
+
+    function setDaftar(list) {
+      Store.set(KEY, list);
+    }
+
+    // ===== RENDER TABEL =====
+    function renderTabel() {
+      const list = getDaftar();
+      const tbody = document.getElementById('tabelUsaha');
+      const active = Store.get(KEY_ACTIVE, null);
+      const totalEl = document.getElementById('totalUsaha');
+
+      totalEl.textContent = `${list.length} usaha`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="table-empty">
+              Belum ada usaha. Silakan tambah usaha baru di form atas. 🏢
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map((u, i) => {
+        const isActive = active && active.id === u.id;
+        return `
+          <tr>
+            <td>${i + 1}</td>
+            <td><strong>${esc(u.nama)}</strong></td>
+            <td>${esc(u.npwp || '-')}</td>
+            <td>${esc(u.periode || '-')}</td>
+            <td>${esc(u.mataUang || 'IDR')}</td>
+            <td class="text-center">
+              ${isActive
+                ? '<span class="badge badge-success">✅ Aktif</span>'
+                : '<span class="badge badge-muted">Nonaktif</span>'}
+            </td>
+            <td class="text-center">
+              <button class="btn btn-sm ${isActive ? 'btn-outline' : 'btn-primary'}"
+                      onclick="pilihAktif('${u.id}')"
+                      ${isActive ? 'disabled' : ''}>
+                ${isActive ? '✓ Aktif' : 'Pilih'}
+              </button>
+              <button class="btn btn-sm btn-outline"
+                      onclick="editUsaha('${u.id}')">✏️</button>
+              <button class="btn btn-sm btn-danger"
+                      onclick="hapusUsaha('${u.id}')">🗑️</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ===== SUBMIT FORM (Tambah / Update) =====
+    document.getElementById('formUsaha').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById('usahaId').value;
+      const data = {
+        id: id || IDGen.generate('USHA'),
+        nama: document.getElementById('nama').value.trim(),
+        npwp: document.getElementById('npwp').value.trim(),
+        alamat: document.getElementById('alamat').value.trim(),
+        telepon: document.getElementById('telepon').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        periode: document.getElementById('periode').value.trim(),
+        mataUang: document.getElementById('mataUang').value,
+      };
+
+      const list = getDaftar();
+      const idx = list.findIndex(u => u.id === data.id);
+
+      if (idx >= 0) {
+        list[idx] = data;
+        notify('✅ Usaha berhasil diperbarui', 'success');
+      } else {
+        list.push(data);
+        notify('✅ Usaha berhasil ditambahkan', 'success');
+      }
+
+      setDaftar(list);
+
+      // Kalau usaha pertama, otomatis aktif
+      const active = Store.get(KEY_ACTIVE, null);
+      if (!active && list.length === 1) {
+        Store.set(KEY_ACTIVE, data);
+      }
+
+      resetForm();
+      renderTabel();
+    });
+
+    // ===== EDIT =====
+    function editUsaha(id) {
+      const u = getDaftar().find(x => x.id === id);
+      if (!u) return;
+
+      document.getElementById('usahaId').value = u.id;
+      document.getElementById('nama').value = u.nama || '';
+      document.getElementById('npwp').value = u.npwp || '';
+      document.getElementById('alamat').value = u.alamat || '';
+      document.getElementById('telepon').value = u.telepon || '';
+      document.getElementById('email').value = u.email || '';
+      document.getElementById('periode').value = u.periode || '';
+      document.getElementById('mataUang').value = u.mataUang || 'IDR';
+
+      document.getElementById('formTitle').textContent = '✏️ Edit Usaha';
+      document.getElementById('btnSubmitText').textContent = 'Update Usaha';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ===== HAPUS =====
+    function hapusUsaha(id) {
+      const u = getDaftar().find(x => x.id === id);
+      if (!u) return;
+      if (!confirm(`Yakin hapus usaha "${u.nama}"?`)) return;
+
+      let list = getDaftar().filter(x => x.id !== id);
+      setDaftar(list);
+
+      // Kalau yang dihapus adalah yang aktif → reset
+      const active = Store.get(KEY_ACTIVE, null);
+      if (active && active.id === id) {
+        if (list.length > 0) {
+          Store.set(KEY_ACTIVE, list[0]);
+        } else {
+          Store.remove(KEY_ACTIVE);
+        }
+      }
+
+      notify('🗑️ Usaha dihapus', 'warning');
+      renderTabel();
+    }
+
+    // ===== PILIH USAHA AKTIF =====
+    function pilihAktif(id) {
+      const u = getDaftar().find(x => x.id === id);
+      if (!u) return;
+      Store.set(KEY_ACTIVE, u);
+      notify(`✅ "${u.nama}" dijadikan usaha aktif`, 'success');
+      renderTabel();
+    }
+
+    // ===== RESET FORM =====
+    function resetForm() {
+      document.getElementById('formUsaha').reset();
+      document.getElementById('usahaId').value = '';
+      document.getElementById('formTitle').textContent = '➕ Tambah Usaha Baru';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Usaha';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    // ===== INIT =====
+    renderTabel();
+  </script>
+</body>
+                </html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Karyawan — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Master Data</a>
+        <span>/</span>
+        <span class="current">Karyawan</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>👷 Karyawan</h1>
+      <p class="subtitle">
+        Data tenaga kerja — <strong>langsung (BTKL)</strong> yang tarifnya
+        dipakai di input BTKL, dan <strong>tidak langsung (BTKTL)</strong>
+        yang masuk sebagai beban gaji/BOP.
+      </p>
+    </section>
+
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">👷</div>
+          <h3 id="totalItem">0</h3>
+          <p>Total Karyawan</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🔧</div>
+          <h3 id="totalLangsung">0</h3>
+          <p>Tenaga Kerja Langsung</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🗂️</div>
+          <h3 id="totalTidakLangsung">0</h3>
+          <p>Tenaga Kerja Tidak Langsung</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="alert alert-info">
+      💡 <strong>Tips:</strong> Karyawan <strong>langsung</strong> akan muncul
+      sebagai pilihan cepat di halaman <strong>Input BTKL</strong>.
+    </div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Karyawan</h2>
+
+      <form id="formKry" autocomplete="off">
+        <input type="hidden" id="kryId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="kode">Kode <span class="required">*</span></label>
+            <input type="text" id="kode" class="form-control" placeholder="KRY-0001" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nama">Nama Karyawan <span class="required">*</span></label>
+            <input type="text" id="nama" class="form-control" placeholder="Contoh: Budi Santoso" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="jenis">Jenis Tenaga Kerja <span class="required">*</span></label>
+            <select id="jenis" class="form-select" required>
+              <option value="Langsung">🔧 Langsung (BTKL)</option>
+              <option value="Tidak Langsung">🗂️ Tidak Langsung (BTKTL)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tarifJam">Tarif per Jam (Rp) <span class="required">*</span></label>
+            <input type="number" id="tarifJam" class="form-control" min="0" step="any" placeholder="0" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="jabatan">Jabatan / Bagian</label>
+          <input type="text" id="jabatan" class="form-control" placeholder="Contoh: Operator Jahit" />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 <span id="btnSubmitText">Simpan Karyawan</span></button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+          <button type="button" class="btn btn-accent" id="btnSeed">📥 Isi Contoh Karyawan</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== TABEL ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Karyawan</h2>
+        <div class="flex gap-8">
+          <select id="filterJenis" class="form-select" style="width:auto;">
+            <option value="">Semua Jenis</option>
+            <option value="Langsung">🔧 Langsung (BTKL)</option>
+            <option value="Tidak Langsung">🗂️ Tidak Langsung (BTKTL)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:100px;">Kode</th>
+              <th>Nama</th>
+              <th style="width:150px;">Jenis</th>
+              <th>Jabatan</th>
+              <th class="text-right" style="width:140px;">Tarif/Jam</th>
+              <th class="text-center" style="width:110px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelKry"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       KARYAWAN — CRUD
+       ============================================================ */
+
+    const KEY = 'karyawan';
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+
+    function renderRingkasan() {
+      const list = getDaftar();
+      document.getElementById('totalItem').textContent = list.length;
+      document.getElementById('totalLangsung').textContent = list.filter(k => k.jenis === 'Langsung').length;
+      document.getElementById('totalTidakLangsung').textContent = list.filter(k => k.jenis === 'Tidak Langsung').length;
+    }
+
+    function badgeJenis(jenis) {
+      return jenis === 'Langsung'
+        ? '<span class="badge badge-warning">🔧 Langsung</span>'
+        : '<span class="badge badge-muted">🗂️ Tidak Langsung</span>';
+    }
+
+    function renderTabel() {
+      const filter = document.getElementById('filterJenis').value;
+      let list = getDaftar();
+      if (filter) list = list.filter(k => k.jenis === filter);
+      list.sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+
+      const tbody = document.getElementById('tabelKry');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Belum ada karyawan. Klik "Isi Contoh Karyawan". 👷</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(k => `
+        <tr>
+          <td><strong>${esc(k.kode)}</strong></td>
+          <td>${esc(k.nama)}</td>
+          <td>${badgeJenis(k.jenis)}</td>
+          <td>${esc(k.jabatan || '-')}</td>
+          <td class="text-right">${Fmt.rupiah(k.tarifJam)}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline" onclick="editKry('${k.id}')">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="hapusKry('${k.id}')">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('formKry').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById('kryId').value;
+      const kode = document.getElementById('kode').value.trim();
+      const list = getDaftar();
+
+      const dup = list.find(k => k.kode === kode && k.id !== id);
+      if (dup) { notify('❌ Kode karyawan sudah dipakai!', 'danger'); return; }
+
+      const data = {
+        id: id || IDGen.generate('KRY'),
+        kode,
+        nama: document.getElementById('nama').value.trim(),
+        jenis: document.getElementById('jenis').value,
+        jabatan: document.getElementById('jabatan').value.trim(),
+        tarifJam: Number(document.getElementById('tarifJam').value) || 0,
+      };
+
+      const idx = list.findIndex(k => k.id === data.id);
+      if (idx >= 0) { list[idx] = data; notify('✅ Karyawan diperbarui', 'success'); }
+      else { list.push(data); notify('✅ Karyawan ditambahkan', 'success'); }
+
+      setDaftar(list);
+      resetForm();
+      renderTabel();
+      renderRingkasan();
+    });
+
+    function editKry(id) {
+      const k = getDaftar().find(x => x.id === id);
+      if (!k) return;
+
+      document.getElementById('kryId').value = k.id;
+      document.getElementById('kode').value = k.kode;
+      document.getElementById('nama').value = k.nama;
+      document.getElementById('jenis').value = k.jenis;
+      document.getElementById('jabatan').value = k.jabatan || '';
+      document.getElementById('tarifJam').value = k.tarifJam || '';
+
+      document.getElementById('formTitle').textContent = '✏️ Edit Karyawan';
+      document.getElementById('btnSubmitText').textContent = 'Update Karyawan';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hapusKry(id) {
+      const k = getDaftar().find(x => x.id === id);
+      if (!k) return;
+      if (!confirm(`Yakin hapus karyawan "${k.nama}"?`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ Karyawan dihapus', 'warning');
+      renderTabel();
+      renderRingkasan();
+    }
+
+    function resetForm() {
+      document.getElementById('formKry').reset();
+      document.getElementById('kryId').value = '';
+      document.getElementById('formTitle').textContent = '➕ Tambah Karyawan';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Karyawan';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    document.getElementById('filterJenis').addEventListener('change', renderTabel);
+
+    document.getElementById('btnSeed').addEventListener('click', function () {
+      if (getDaftar().length > 0 && !confirm('Data sudah ada. Timpa dengan contoh?')) return;
+
+      const contoh = [
+        { kode: 'KRY-0001', nama: 'Budi Santoso', jenis: 'Langsung', jabatan: 'Operator Jahit', tarifJam: 18000 },
+        { kode: 'KRY-0002', nama: 'Siti Aminah', jenis: 'Langsung', jabatan: 'Operator Potong', tarifJam: 17000 },
+        { kode: 'KRY-0003', nama: 'Agus Wijaya', jenis: 'Tidak Langsung', jabatan: 'Supervisor Produksi', tarifJam: 25000 },
+      ];
+
+      setDaftar(contoh.map(c => ({ id: IDGen.generate('KRY'), ...c })));
+      renderTabel();
+      renderRingkasan();
+      notify('✅ Contoh karyawan dimuat!', 'success');
+    });
+
+    renderTabel();
+    renderRingkasan();
+  </script>
+</body>
+</html>

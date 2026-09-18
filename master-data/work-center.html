@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Center — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Master Data</a>
+        <span>/</span>
+        <span class="current">Work Center</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>⚙️ Work Center</h1>
+      <p class="subtitle">
+        Data mesin / stasiun kerja beserta kapasitas dan
+        <strong>tarif BOP per jam</strong> — dipakai untuk alokasi
+        overhead pabrik ke tiap SPK.
+      </p>
+    </section>
+
+    <!-- Ringkasan -->
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">⚙️</div>
+          <h3 id="totalItem">0</h3>
+          <p>Total Work Center</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">⏱️</div>
+          <h3 id="totalKapasitas">0</h3>
+          <p>Total Kapasitas (jam/hari)</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="alert alert-info">
+      💡 <strong>Tips:</strong> Klik <strong>"Isi Contoh Work Center"</strong>
+      untuk memuat data contoh mesin produksi.
+    </div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Work Center</h2>
+
+      <form id="formWC" autocomplete="off">
+        <input type="hidden" id="wcId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="kode">Kode <span class="required">*</span></label>
+            <input type="text" id="kode" class="form-control" placeholder="WC-0001" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nama">Nama Work Center <span class="required">*</span></label>
+            <input type="text" id="nama" class="form-control" placeholder="Contoh: Mesin Jahit 1" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="kapasitasJam">Kapasitas (jam/hari)</label>
+            <input type="number" id="kapasitasJam" class="form-control" min="0" step="any" placeholder="8" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tarifBOP">Tarif BOP per Jam (Rp)</label>
+            <input type="number" id="tarifBOP" class="form-control" min="0" step="any" placeholder="0" />
+            <div class="form-hint">Dipakai untuk alokasi BOP dibebankan</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="keterangan">Keterangan</label>
+          <input type="text" id="keterangan" class="form-control" placeholder="Opsional" />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 <span id="btnSubmitText">Simpan Work Center</span></button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+          <button type="button" class="btn btn-accent" id="btnSeed">📥 Isi Contoh Work Center</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== TABEL ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Work Center</h2>
+        <span class="badge badge-primary" id="totalBadge">0 work center</span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:100px;">Kode</th>
+              <th>Nama</th>
+              <th class="text-right" style="width:140px;">Kapasitas/hari</th>
+              <th class="text-right" style="width:160px;">Tarif BOP/Jam</th>
+              <th>Keterangan</th>
+              <th class="text-center" style="width:110px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelWC"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       WORK CENTER — CRUD
+       ============================================================ */
+
+    const KEY = 'work_center';
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+
+    function renderRingkasan() {
+      const list = getDaftar();
+      const totalKapasitas = list.reduce((s, w) => s + (Number(w.kapasitasJam) || 0), 0);
+      document.getElementById('totalItem').textContent = list.length;
+      document.getElementById('totalKapasitas').textContent = Fmt.angka(totalKapasitas);
+    }
+
+    function renderTabel() {
+      const list = getDaftar().slice().sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+      const tbody = document.getElementById('tabelWC');
+      document.getElementById('totalBadge').textContent = `${list.length} work center`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Belum ada work center. Klik "Isi Contoh Work Center". ⚙️</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(w => `
+        <tr>
+          <td><strong>${esc(w.kode)}</strong></td>
+          <td>${esc(w.nama)}</td>
+          <td class="text-right">${Fmt.angka(w.kapasitasJam)} jam</td>
+          <td class="text-right">${Fmt.rupiah(w.tarifBOP)}</td>
+          <td>${esc(w.keterangan || '-')}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline" onclick="editWC('${w.id}')">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="hapusWC('${w.id}')">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('formWC').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById('wcId').value;
+      const kode = document.getElementById('kode').value.trim();
+      const list = getDaftar();
+
+      const dup = list.find(w => w.kode === kode && w.id !== id);
+      if (dup) { notify('❌ Kode work center sudah dipakai!', 'danger'); return; }
+
+      const data = {
+        id: id || IDGen.generate('WC'),
+        kode,
+        nama: document.getElementById('nama').value.trim(),
+        kapasitasJam: Number(document.getElementById('kapasitasJam').value) || 0,
+        tarifBOP: Number(document.getElementById('tarifBOP').value) || 0,
+        keterangan: document.getElementById('keterangan').value.trim(),
+      };
+
+      const idx = list.findIndex(w => w.id === data.id);
+      if (idx >= 0) { list[idx] = data; notify('✅ Work center diperbarui', 'success'); }
+      else { list.push(data); notify('✅ Work center ditambahkan', 'success'); }
+
+      setDaftar(list);
+      resetForm();
+      renderTabel();
+      renderRingkasan();
+    });
+
+    function editWC(id) {
+      const w = getDaftar().find(x => x.id === id);
+      if (!w) return;
+
+      document.getElementById('wcId').value = w.id;
+      document.getElementById('kode').value = w.kode;
+      document.getElementById('nama').value = w.nama;
+      document.getElementById('kapasitasJam').value = w.kapasitasJam || '';
+      document.getElementById('tarifBOP').value = w.tarifBOP || '';
+      document.getElementById('keterangan').value = w.keterangan || '';
+
+      document.getElementById('formTitle').textContent = '✏️ Edit Work Center';
+      document.getElementById('btnSubmitText').textContent = 'Update Work Center';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hapusWC(id) {
+      const w = getDaftar().find(x => x.id === id);
+      if (!w) return;
+      if (!confirm(`Yakin hapus work center "${w.nama}"?`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ Work center dihapus', 'warning');
+      renderTabel();
+      renderRingkasan();
+    }
+
+    function resetForm() {
+      document.getElementById('formWC').reset();
+      document.getElementById('wcId').value = '';
+      document.getElementById('formTitle').textContent = '➕ Tambah Work Center';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Work Center';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    document.getElementById('btnSeed').addEventListener('click', function () {
+      if (getDaftar().length > 0 && !confirm('Data sudah ada. Timpa dengan contoh?')) return;
+
+      const contoh = [
+        { kode: 'WC-0001', nama: 'Mesin Potong', kapasitasJam: 8, tarifBOP: 25000, keterangan: 'Pemotongan bahan baku' },
+        { kode: 'WC-0002', nama: 'Mesin Jahit 1', kapasitasJam: 8, tarifBOP: 20000, keterangan: 'Penjahitan utama' },
+        { kode: 'WC-0003', nama: 'Stasiun Finishing', kapasitasJam: 8, tarifBOP: 15000, keterangan: 'Pengemasan & QC' },
+      ];
+
+      setDaftar(contoh.map(c => ({ id: IDGen.generate('WC'), ...c })));
+      renderTabel();
+      renderRingkasan();
+      notify('✅ Contoh work center dimuat!', 'success');
+    });
+
+    renderTabel();
+    renderRingkasan();
+  </script>
+</body>
+</html>

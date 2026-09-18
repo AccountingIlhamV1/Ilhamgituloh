@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bahan Baku — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span>Master Data</span>
+        <span>/</span>
+        <span class="current">Bahan Baku</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🧱 Bahan Baku</h1>
+      <p class="subtitle">
+        Data material mentah: kode, nama, satuan, harga beli, stok,
+        dan supplier utama. Bahan baku ini nanti dipakai di <strong>BOM</strong>
+        (resep produk) dan <strong>pemakaian bahan</strong> produksi.
+      </p>
+    </section>
+
+    <!-- Ringkasan -->
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🧱</div>
+          <h3 id="totalItem">0</h3>
+          <p>Total Item Bahan Baku</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">💰</div>
+          <h3 id="totalNilai">Rp 0</h3>
+          <p>Nilai Total Persediaan</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">⚠️</div>
+          <h3 id="totalLowStock">0</h3>
+          <p>Item di Bawah Stok Minimum</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alert -->
+    <div class="alert alert-info">
+      💡 <strong>Tips:</strong> Klik <strong>"Isi Contoh Bahan Baku"</strong>
+      untuk memuat data contoh (kain, benang, cat, dll.) — siap pakai untuk uji BOM.
+    </div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Tambah Bahan Baku</h2>
+
+      <form id="formBB" autocomplete="off">
+        <input type="hidden" id="bbId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="kode">Kode Bahan <span class="required">*</span></label>
+            <input type="text" id="kode" class="form-control" placeholder="BB-0001" required />
+            <div class="form-hint">Kode unik material</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="kategori">Kategori</label>
+            <select id="kategori" class="form-select">
+              <option value="Bahan Utama">🧵 Bahan Utama</option>
+              <option value="Bahan Pembantu">🧴 Bahan Pembantu</option>
+              <option value="Kemasan">📦 Kemasan</option>
+              <option value="Suku Cadang">🔩 Suku Cadang</option>
+              <option value="Lainnya">📎 Lainnya</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="nama">Nama Bahan <span class="required">*</span></label>
+          <input type="text" id="nama" class="form-control"
+                 placeholder="Contoh: Kain Katun Putih" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="satuan">Satuan <span class="required">*</span></label>
+            <select id="satuan" class="form-select" required>
+              <option value="pcs">pcs</option>
+              <option value="unit">unit</option>
+              <option value="meter">meter</option>
+              <option value="yard">yard</option>
+              <option value="kg">kg</option>
+              <option value="gram">gram</option>
+              <option value="liter">liter</option>
+              <option value="ml">ml</option>
+              <option value="roll">roll</option>
+              <option value="box">box</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="harga">Harga per Satuan (Rp) <span class="required">*</span></label>
+            <input type="number" id="harga" class="form-control"
+                   placeholder="0" min="0" step="any" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="stok">Stok Saat Ini</label>
+            <input type="number" id="stok" class="form-control"
+                   placeholder="0" min="0" step="any" value="0" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="stokMin">Stok Minimum</label>
+            <input type="number" id="stokMin" class="form-control"
+                   placeholder="0" min="0" step="any" value="0" />
+            <div class="form-hint">Alert kalau stok di bawah angka ini</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="supplier">Supplier Utama</label>
+            <input type="text" id="supplier" class="form-control"
+                   placeholder="Contoh: PT Kain Nusantara" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            💾 <span id="btnSubmitText">Simpan Bahan Baku</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+          <button type="button" class="btn btn-accent" id="btnSeed">📥 Isi Contoh Bahan Baku</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== TABEL ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Bahan Baku</h2>
+        <div class="flex gap-8">
+          <input type="text" id="search" class="form-control"
+                 placeholder="🔍 Cari nama / kode..." style="width:auto; min-width:180px;" />
+          <select id="filterKategori" class="form-select" style="width:auto;">
+            <option value="">Semua Kategori</option>
+            <option value="Bahan Utama">🧵 Bahan Utama</option>
+            <option value="Bahan Pembantu">🧴 Bahan Pembantu</option>
+            <option value="Kemasan">📦 Kemasan</option>
+            <option value="Suku Cadang">🔩 Suku Cadang</option>
+            <option value="Lainnya">📎 Lainnya</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:100px;">Kode</th>
+              <th>Nama Bahan</th>
+              <th style="width:130px;">Kategori</th>
+              <th class="text-center" style="width:80px;">Satuan</th>
+              <th class="text-right" style="width:120px;">Harga</th>
+              <th class="text-right" style="width:100px;">Stok</th>
+              <th class="text-right" style="width:130px;">Nilai Stok</th>
+              <th style="width:130px;">Supplier</th>
+              <th class="text-center" style="width:120px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelBB"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       BAHAN BAKU — CRUD
+       ============================================================ */
+
+    const KEY = 'bahan_baku';
+
+    function getDaftar() {
+      return Store.get(KEY, []) || [];
+    }
+    function setDaftar(list) {
+      Store.set(KEY, list);
+    }
+
+    // ===== RENDER RINGKASAN =====
+    function renderRingkasan() {
+      const list = getDaftar();
+      const totalNilai = list.reduce((s, b) => s + (Number(b.stok) * Number(b.harga)), 0);
+      const lowStock = list.filter(b => Number(b.stokMin) > 0 && Number(b.stok) <= Number(b.stokMin)).length;
+
+      document.getElementById('totalItem').textContent = list.length;
+      document.getElementById('totalNilai').textContent = Fmt.rupiah(totalNilai);
+      document.getElementById('totalLowStock').textContent = lowStock;
+    }
+
+    // ===== RENDER TABEL =====
+    function renderTabel() {
+      const q = document.getElementById('search').value.toLowerCase();
+      const filter = document.getElementById('filterKategori').value;
+      let list = getDaftar();
+
+      if (q) {
+        list = list.filter(b =>
+          (b.nama || '').toLowerCase().includes(q) ||
+          (b.kode || '').toLowerCase().includes(q)
+        );
+      }
+      if (filter) {
+        list = list.filter(b => b.kategori === filter);
+      }
+
+      list.sort((a, b) => String(a.kode).localeCompare(String(b.kode)));
+
+      const tbody = document.getElementById('tabelBB');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="table-empty">
+              Belum ada bahan baku. Klik <strong>"Isi Contoh Bahan Baku"</strong>
+              untuk memuat data contoh. 🧱
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(b => {
+        const nilai = Number(b.stok) * Number(b.harga);
+        const low = Number(b.stokMin) > 0 && Number(b.stok) <= Number(b.stokMin);
+        return `
+          <tr>
+            <td><strong>${esc(b.kode)}</strong></td>
+            <td>${esc(b.nama)}</td>
+            <td><span class="badge badge-muted">${esc(b.kategori || '-')}</span></td>
+            <td class="text-center">${esc(b.satuan)}</td>
+            <td class="text-right">${Fmt.rupiah(b.harga)}</td>
+            <td class="text-right">
+              ${Fmt.angka(b.stok)}
+              ${low ? ' <span class="badge badge-danger">⚠️</span>' : ''}
+            </td>
+            <td class="text-right"><strong>${Fmt.rupiah(nilai)}</strong></td>
+            <td>${esc(b.supplier || '-')}</td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline" onclick="editBB('${b.id}')">✏️</button>
+              <button class="btn btn-sm btn-danger" onclick="hapusBB('${b.id}')">🗑️</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ===== SUBMIT FORM =====
+    document.getElementById('formBB').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById('bbId').value;
+      const kode = document.getElementById('kode').value.trim();
+      const list = getDaftar();
+
+      const dup = list.find(b => b.kode === kode && b.id !== id);
+      if (dup) {
+        notify('❌ Kode bahan sudah dipakai!', 'danger');
+        return;
+      }
+
+      const data = {
+        id: id || IDGen.generate('BB'),
+        kode,
+        nama: document.getElementById('nama').value.trim(),
+        kategori: document.getElementById('kategori').value,
+        satuan: document.getElementById('satuan').value,
+        harga: Number(document.getElementById('harga').value) || 0,
+        stok: Number(document.getElementById('stok').value) || 0,
+        stokMin: Number(document.getElementById('stokMin').value) || 0,
+        supplier: document.getElementById('supplier').value.trim(),
+      };
+
+      const idx = list.findIndex(b => b.id === data.id);
+
+      if (idx >= 0) {
+        list[idx] = data;
+        notify('✅ Bahan baku diperbarui', 'success');
+      } else {
+        list.push(data);
+        notify('✅ Bahan baku ditambahkan', 'success');
+      }
+
+      setDaftar(list);
+      resetForm();
+      renderTabel();
+      renderRingkasan();
+    });
+
+    // ===== EDIT =====
+    function editBB(id) {
+      const b = getDaftar().find(x => x.id === id);
+      if (!b) return;
+
+      document.getElementById('bbId').value = b.id;
+      document.getElementById('kode').value = b.kode;
+      document.getElementById('nama').value = b.nama;
+      document.getElementById('kategori').value = b.kategori || 'Bahan Utama';
+      document.getElementById('satuan').value = b.satuan;
+      document.getElementById('harga').value = b.harga;
+      document.getElementById('stok').value = b.stok;
+      document.getElementById('stokMin').value = b.stokMin || 0;
+      document.getElementById('supplier').value = b.supplier || '';
+
+      document.getElementById('formTitle').textContent = '✏️ Edit Bahan Baku';
+      document.getElementById('btnSubmitText').textContent = 'Update Bahan Baku';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ===== HAPUS =====
+    function hapusBB(id) {
+      const b = getDaftar().find(x => x.id === id);
+      if (!b) return;
+      if (!confirm(`Yakin hapus "${b.kode} - ${b.nama}"?`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ Bahan baku dihapus', 'warning');
+      renderTabel();
+      renderRingkasan();
+    }
+
+    // ===== RESET FORM =====
+    function resetForm() {
+      document.getElementById('formBB').reset();
+      document.getElementById('bbId').value = '';
+      document.getElementById('stok').value = 0;
+      document.getElementById('stokMin').value = 0;
+      document.getElementById('formTitle').textContent = '➕ Tambah Bahan Baku';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Bahan Baku';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    // ===== FILTER & SEARCH =====
+    document.getElementById('search').addEventListener('input', renderTabel);
+    document.getElementById('filterKategori').addEventListener('change', renderTabel);
+
+    // ===== SEED DATA =====
+    document.getElementById('btnSeed').addEventListener('click', function () {
+      if (getDaftar().length > 0) {
+        if (!confirm('Data sudah ada. Tambahkan contoh tetap?')) return;
+      }
+
+      const contoh = [
+        // Konveksi / Garmen
+        { kode: 'BB-0001', nama: 'Kain Katun Putih', kategori: 'Bahan Utama', satuan: 'meter', harga: 25000, stok: 500, stokMin: 100, supplier: 'PT Kain Nusantara' },
+        { kode: 'BB-0002', nama: 'Kain Katun Hitam', kategori: 'Bahan Utama', satuan: 'meter', harga: 27000, stok: 300, stokMin: 100, supplier: 'PT Kain Nusantara' },
+        { kode: 'BB-0003', nama: 'Benang Jahit Putih', kategori: 'Bahan Pembantu', satuan: 'roll', harga: 15000, stok: 80, stokMin: 20, supplier: 'CV Benang Jaya' },
+        { kode: 'BB-0004', nama: 'Benang Jahit Hitam', kategori: 'Bahan Pembantu', satuan: 'roll', harga: 16000, stok: 15, stokMin: 20, supplier: 'CV Benang Jaya' },
+        { kode: 'BB-0005', nama: 'Kancing Baju 18L', kategori: 'Bahan Pembantu', satuan: 'box', harga: 45000, stok: 25, stokMin: 10, supplier: 'Toko Aksesoris Mode' },
+        { kode: 'BB-0006', nama: 'Resleting 20cm', kategori: 'Bahan Pembantu', satuan: 'pcs', harga: 3500, stok: 200, stokMin: 50, supplier: 'Toko Aksesoris Mode' },
+        { kode: 'BB-0007', nama: 'Label Merek', kategori: 'Bahan Pembantu', satuan: 'pcs', harga: 800, stok: 1000, stokMin: 200, supplier: 'Percetakan Label ID' },
+        { kode: 'BB-0008', nama: 'Plastik Kemasan', kategori: 'Kemasan', satuan: 'pcs', harga: 500, stok: 2000, stokMin: 500, supplier: 'PT Plastik Sejahtera' },
+        { kode: 'BB-0009', nama: 'Kardus Packing', kategori: 'Kemasan', satuan: 'pcs', harga: 3000, stok: 150, stokMin: 100, supplier: 'PT Plastik Sejahtera' },
+        { kode: 'BB-0010', nama: 'Tinta Sablon Hitam', kategori: 'Bahan Pembantu', satuan: 'kg', harga: 85000, stok: 8, stokMin: 5, supplier: 'CV Tinta Warna' },
+      ];
+
+      const list = getDaftar();
+      const existing = new Set(list.map(b => b.kode));
+
+      const baru = contoh
+        .filter(c => !existing.has(c.kode))
+        .map(c => ({ id: IDGen.generate('BB'), ...c }));
+
+      setDaftar([...list, ...baru]);
+      renderTabel();
+      renderRingkasan();
+      notify(`✅ ${baru.length} bahan baku contoh dimuat!`, 'success');
+    });
+
+    // ===== INIT =====
+    renderTabel();
+    renderRingkasan();
+  </script>
+</body>
+  </html>
