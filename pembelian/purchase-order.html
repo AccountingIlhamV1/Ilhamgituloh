@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Purchase Order — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Pembelian</a>
+        <span>/</span>
+        <span class="current">Purchase Order</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📄 Purchase Order</h1>
+      <p class="subtitle">
+        Pesanan pembelian bahan baku ke supplier. Halaman ini murni dokumen
+        pesanan — stok &amp; jurnal baru berubah di
+        <a href="penerimaan-barang.html">Penerimaan Barang</a> dan
+        <a href="faktur-pembelian.html">Faktur Pembelian</a>.
+      </p>
+    </section>
+
+    <div id="alertPrasyarat"></div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title">➕ Buat Purchase Order</h2>
+
+      <form id="formPO" autocomplete="off">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="supplierId">Supplier <span class="required">*</span></label>
+            <select id="supplierId" class="form-select" required>
+              <option value="">— Pilih Supplier —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tglPO">Tanggal PO</label>
+            <input type="date" id="tglPO" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tglTarget">Target Kedatangan</label>
+            <input type="date" id="tglTarget" class="form-control" />
+          </div>
+        </div>
+
+        <div class="flex-between mb-16" style="margin-top:16px;">
+          <h3 style="font-size:1rem; font-weight:700;">🧱 Item Bahan Baku</h3>
+          <button type="button" class="btn btn-sm btn-accent" id="btnTambahBaris">➕ Tambah Item</button>
+        </div>
+
+        <div class="table-wrapper mb-16">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Bahan Baku</th>
+                <th style="width:120px;">Qty Pesan</th>
+                <th style="width:150px;" class="text-right">Harga Satuan</th>
+                <th style="width:150px;" class="text-right">Subtotal</th>
+                <th style="width:70px;" class="text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelBaris"></tbody>
+            <tfoot>
+              <tr style="background:var(--primary-light); font-weight:700;">
+                <td colspan="3" class="text-right">TOTAL NILAI PO</td>
+                <td class="text-right" id="totalPO">Rp 0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="catatan">Catatan</label>
+          <input type="text" id="catatan" class="form-control" placeholder="Opsional" />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 Simpan Purchase Order</button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== DAFTAR ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Purchase Order</h2>
+        <span class="badge badge-primary" id="totalRiwayat">0 PO</span>
+      </div>
+      <div id="daftarPO"></div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    const KEY = 'purchase_order';
+    let baris = [];
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+    function getSupplier() { return Store.get('supplier', []) || []; }
+    function getBahan() { return Store.get('bahan_baku', []) || []; }
+
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      if (getSupplier().length === 0) {
+        box.innerHTML = `<div class="alert alert-warning">⚠️ <div><strong>Belum ada Supplier.</strong> Buat dulu di <a href="../master-data/supplier.html">Master Data → Supplier</a>.</div></div>`;
+        return;
+      }
+      if (getBahan().length === 0) {
+        box.innerHTML = `<div class="alert alert-warning">⚠️ <div><strong>Belum ada Bahan Baku.</strong> Buat dulu di <a href="../master-data/bahan-baku.html">Master Data → Bahan Baku</a>.</div></div>`;
+        return;
+      }
+      box.innerHTML = '';
+    }
+
+    function isiDropdownSupplier() {
+      const sel = document.getElementById('supplierId');
+      sel.innerHTML = '<option value="">— Pilih Supplier —</option>' +
+        getSupplier().map(s => `<option value="${s.id}">${esc(s.kode)} — ${esc(s.nama)}</option>`).join('');
+    }
+
+    function renderBaris() {
+      const tbody = document.getElementById('tabelBaris');
+      const bahan = getBahan();
+
+      if (baris.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Klik "Tambah Item" untuk mulai.</td></tr>`;
+        document.getElementById('totalPO').textContent = 'Rp 0';
+        return;
+      }
+
+      let total = 0;
+
+      tbody.innerHTML = baris.map((b, i) => {
+        const bd = bahan.find(x => x.id === b.bahanId);
+        const subtotal = b.qty * b.harga;
+        total += subtotal;
+
+        return `
+          <tr>
+            <td>
+              <select class="form-select" onchange="ubahBaris(${i}, 'bahanId', this.value)">
+                ${bahan.map(x => `<option value="${x.id}" ${x.id === b.bahanId ? 'selected' : ''}>${esc(x.kode)} — ${esc(x.nama)}</option>`).join('')}
+              </select>
+            </td>
+            <td><input type="number" class="form-control" min="0" step="any" value="${b.qty}" onchange="ubahBaris(${i}, 'qty', this.value)" /></td>
+            <td><input type="number" class="form-control" min="0" step="any" value="${b.harga}" onchange="ubahBaris(${i}, 'harga', this.value)" /></td>
+            <td class="text-right"><strong>${Fmt.rupiah(subtotal)}</strong></td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-danger" onclick="hapusBaris(${i})">🗑️</button></td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('totalPO').textContent = Fmt.rupiah(total);
+    }
+
+    function ubahBaris(i, field, val) {
+      if (field === 'bahanId') {
+        baris[i].bahanId = val;
+        const bd = getBahan().find(x => x.id === val);
+        baris[i].harga = bd ? Number(bd.harga) : 0;
+      } else {
+        baris[i][field] = Number(val) || 0;
+      }
+      renderBaris();
+    }
+    function hapusBaris(i) { baris.splice(i, 1); renderBaris(); }
+
+    document.getElementById('btnTambahBaris').addEventListener('click', function () {
+      const bahan = getBahan();
+      if (bahan.length === 0) { notify('❌ Belum ada bahan baku', 'danger'); return; }
+      baris.push({ bahanId: bahan[0].id, qty: 1, harga: Number(bahan[0].harga) || 0 });
+      renderBaris();
+    });
+
+    document.getElementById('formPO').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const supplierId = document.getElementById('supplierId').value;
+      if (!supplierId) { notify('❌ Pilih supplier dulu', 'danger'); return; }
+      if (baris.length === 0) { notify('❌ Tambah minimal 1 item', 'danger'); return; }
+      if (baris.some(b => b.qty <= 0)) { notify('❌ Qty pesan harus > 0', 'danger'); return; }
+
+      const supplier = getSupplier().find(s => s.id === supplierId);
+      const bahan = getBahan();
+      const items = baris.map(b => {
+        const bd = bahan.find(x => x.id === b.bahanId);
+        return { bahanId: b.bahanId, kode: bd ? bd.kode : '?', nama: bd ? bd.nama : '?', satuan: bd ? bd.satuan : '', qtyPesan: b.qty, hargaSatuan: b.harga, subtotal: b.qty * b.harga };
+      });
+      const totalNilai = items.reduce((s, it) => s + it.subtotal, 0);
+
+      const list = getDaftar();
+      const data = {
+        id: IDGen.generate('PO'),
+        noPO: 'PO-' + String(list.length + 1).padStart(4, '0'),
+        supplierId,
+        supplierNama: supplier.nama,
+        tglPO: document.getElementById('tglPO').value || Fmt.today(),
+        tglTarget: document.getElementById('tglTarget').value || '',
+        items,
+        totalNilai,
+        status: 'Dikirim',
+        catatan: document.getElementById('catatan').value.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      list.push(data);
+      setDaftar(list);
+
+      notify(`✅ ${data.noPO} dibuat — ${Fmt.rupiah(totalNilai)}`, 'success');
+      resetForm();
+      renderRiwayat();
+      cekPrasyarat();
+    });
+
+    function badgeStatus(status) {
+      const map = { 'Draft': 'badge-muted', 'Dikirim': 'badge-warning', 'Diterima Sebagian': 'badge-primary', 'Selesai': 'badge-success' };
+      return `<span class="badge ${map[status] || 'badge-muted'}">${esc(status)}</span>`;
+    }
+
+    function renderRiwayat() {
+      const list = getDaftar().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const container = document.getElementById('daftarPO');
+      document.getElementById('totalRiwayat').textContent = `${list.length} PO`;
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="alert alert-info">Belum ada Purchase Order.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(po => {
+        const rows = po.items.map(it => `
+          <tr><td>${esc(it.kode)} — ${esc(it.nama)}</td><td class="text-right">${Fmt.angka(it.qtyPesan)} ${esc(it.satuan)}</td><td class="text-right">${Fmt.rupiah(it.hargaSatuan)}</td><td class="text-right">${Fmt.rupiah(it.subtotal)}</td></tr>
+        `).join('');
+
+        return `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="flex-between mb-16">
+              <div>
+                <h3 style="color:var(--primary); margin-bottom:4px;">📄 ${esc(po.noPO)} — ${esc(po.supplierNama)}</h3>
+                <div class="text-muted" style="font-size:0.88rem;">
+                  Tanggal: <strong>${Fmt.tanggal(po.tglPO)}</strong>
+                  ${po.tglTarget ? ` | Target: <strong>${Fmt.tanggal(po.tglTarget)}</strong>` : ''}
+                  | Total: <strong>${Fmt.rupiah(po.totalNilai)}</strong> | ${badgeStatus(po.status)}
+                </div>
+              </div>
+              ${po.status === 'Dikirim' ? `<button class="btn btn-sm btn-danger" onclick="hapusPO('${po.id}')">🗑️ Hapus</button>` : ''}
+            </div>
+            <div class="table-wrapper"><table class="table"><thead><tr><th>Bahan</th><th class="text-right" style="width:120px;">Qty</th><th class="text-right" style="width:140px;">Harga</th><th class="text-right" style="width:140px;">Subtotal</th></tr></thead><tbody>${rows}</tbody></table></div>
+          </div>`;
+      }).join('');
+    }
+
+    function hapusPO(id) {
+      const po = getDaftar().find(x => x.id === id);
+      if (!po) return;
+      if (po.status !== 'Dikirim') { notify('❌ PO yang sudah ada penerimaan barang tidak bisa dihapus', 'danger'); return; }
+      if (!confirm(`Hapus ${po.noPO}?`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ PO dihapus', 'warning');
+      renderRiwayat();
+    }
+
+    function resetForm() {
+      document.getElementById('formPO').reset();
+      document.getElementById('tglPO').value = Fmt.today();
+      baris = [];
+      renderBaris();
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    isiDropdownSupplier();
+    document.getElementById('tglPO').value = Fmt.today();
+    renderBaris();
+    renderRiwayat();
+    cekPrasyarat();
+  </script>
+</body>
+</html>

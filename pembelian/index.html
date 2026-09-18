@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pembelian — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span class="current">Pembelian</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🚚 Pembelian</h1>
+      <p class="subtitle">
+        Alur: Purchase Order → Penerimaan Barang (stok bertambah) →
+        Faktur Pembelian (Utang Usaha dicatat) → Pembayaran.
+      </p>
+    </section>
+
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📄</div>
+          <h3 id="jmlPOAktif">0</h3>
+          <p>PO Menunggu Penerimaan</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📥</div>
+          <h3 id="jmlBelumFaktur">0</h3>
+          <p>Penerimaan Belum Difaktur</p>
+        </div>
+        <div class="menu-card" style="cursor:default; background:linear-gradient(135deg,#fef2f2,#fee2e2);">
+          <div class="card-icon">💸</div>
+          <h3 id="totalUtang">Rp 0</h3>
+          <p>Sisa Utang Usaha</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="menu-group">
+      <div class="card-grid">
+
+        <a href="purchase-order.html" class="menu-card">
+          <div class="card-icon">📄</div>
+          <h3>Purchase Order</h3>
+          <p>Pesanan pembelian bahan baku ke supplier.</p>
+        </a>
+
+        <a href="penerimaan-barang.html" class="menu-card">
+          <div class="card-icon">📥</div>
+          <h3>Penerimaan Barang</h3>
+          <p>Barang datang dari supplier — tambah stok bahan baku.</p>
+        </a>
+
+        <a href="faktur-pembelian.html" class="menu-card">
+          <div class="card-icon">🧾</div>
+          <h3>Faktur Pembelian</h3>
+          <p>Tagihan dari supplier, pencatatan &amp; pembayaran utang usaha.</p>
+        </a>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <script src="../assets/js/app.js"></script>
+  <script>
+    const po = Store.get('purchase_order', []) || [];
+    const penerimaan = Store.get('penerimaan_barang', []) || [];
+    const faktur = Store.get('faktur_pembelian', []) || [];
+    const bayar = Store.get('pembayaran_pembelian', []) || [];
+
+    document.getElementById('jmlPOAktif').textContent = po.filter(p => p.status === 'Dikirim' || p.status === 'Diterima Sebagian').length;
+    document.getElementById('jmlBelumFaktur').textContent = penerimaan.filter(p => !p.sudahDifaktur).length;
+
+    const totalUtang = faktur.reduce((sum, f) => {
+      const dibayar = bayar.filter(b => b.fakturId === f.id).reduce((s, b) => s + b.nominal, 0);
+      const sisa = f.totalNilai - dibayar;
+      return sum + Math.max(0, sisa);
+    }, 0);
+    document.getElementById('totalUtang').textContent = Fmt.rupiah(totalUtang);
+  </script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Faktur Pembelian — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Pembelian</a>
+        <span>/</span>
+        <span class="current">Faktur Pembelian</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🧾 Faktur Pembelian</h1>
+      <p class="subtitle">
+        Tagihan resmi dari supplier atas barang yang sudah diterima.
+        Di sinilah <strong>Utang Usaha</strong> dicatat, dan pembayarannya
+        dilacak sampai lunas.
+      </p>
+    </section>
+
+    <!-- Ringkasan Utang -->
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">🧾</div>
+          <h3 id="totalFaktur">0</h3>
+          <p>Total Faktur</p>
+        </div>
+        <div class="menu-card" style="cursor:default; background:linear-gradient(135deg,#fef2f2,#fee2e2);">
+          <div class="card-icon">💸</div>
+          <h3 id="totalUtang">Rp 0</h3>
+          <p>Sisa Utang Usaha Belum Dibayar</p>
+        </div>
+      </div>
+    </section>
+
+    <div id="alertPrasyarat"></div>
+
+    <!-- ===== FORM BUAT FAKTUR ===== -->
+    <section class="card">
+      <h2 class="card-title">➕ Catat Faktur Pembelian</h2>
+
+      <form id="formFaktur" autocomplete="off">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="penerimaanId">Penerimaan Barang <span class="required">*</span></label>
+            <select id="penerimaanId" class="form-select" required>
+              <option value="">— Pilih Penerimaan —</option>
+            </select>
+            <div class="form-hint">Hanya penerimaan yang belum difaktur</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="noFakturSupplier">No. Faktur dari Supplier</label>
+            <input type="text" id="noFakturSupplier" class="form-control" placeholder="Opsional" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="tglFaktur">Tanggal Faktur</label>
+            <input type="date" id="tglFaktur" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jatuh Tempo (otomatis dari termin supplier)</label>
+            <input type="text" id="tglJatuhTempoTampil" class="form-control" disabled />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nilai Faktur</label>
+            <input type="text" id="nilaiTampil" class="form-control" disabled value="Rp 0" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 Simpan Faktur — Catat Utang Usaha</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== DAFTAR FAKTUR ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar Faktur</h2>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>No Faktur</th>
+              <th>Supplier</th>
+              <th style="width:110px;">Tanggal</th>
+              <th style="width:110px;">Jatuh Tempo</th>
+              <th class="text-right" style="width:130px;">Nilai</th>
+              <th class="text-right" style="width:130px;">Sisa</th>
+              <th class="text-center" style="width:120px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="tabelFaktur"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== FORM PEMBAYARAN ===== -->
+    <section class="card" style="border-color:var(--success);">
+      <h2 class="card-title">💳 Catat Pembayaran</h2>
+
+      <form id="formBayar" autocomplete="off">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="fakturId">Faktur <span class="required">*</span></label>
+            <select id="fakturId" class="form-select" required>
+              <option value="">— Pilih Faktur Belum Lunas —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tglBayar">Tanggal Bayar</label>
+            <input type="date" id="tglBayar" class="form-control" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="akunBayar">Dibayar Lewat <span class="required">*</span></label>
+            <select id="akunBayar" class="form-select" required>
+              <option value="">— Pilih Kas/Bank —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nominalBayar">Nominal Dibayar (Rp) <span class="required">*</span></label>
+            <input type="number" id="nominalBayar" class="form-control" min="0" step="any" required />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 Simpan Pembayaran</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Riwayat Pembayaran</h2>
+        <span class="badge badge-primary" id="totalBayar">0 pembayaran</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead><tr><th style="width:110px;">Tanggal</th><th>No Faktur</th><th>Dibayar Lewat</th><th class="text-right" style="width:150px;">Nominal</th></tr></thead>
+          <tbody id="tabelBayar"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    const KEY = 'faktur_pembelian';
+    const KEY_BAYAR = 'pembayaran_pembelian';
+
+    function getFaktur() { return Store.get(KEY, []) || []; }
+    function setFaktur(list) { Store.set(KEY, list); }
+    function getBayar() { return Store.get(KEY_BAYAR, []) || []; }
+    function setBayar(list) { Store.set(KEY_BAYAR, list); }
+    function getPenerimaan() { return Store.get('penerimaan_barang', []) || []; }
+    function setPenerimaan(list) { Store.set('penerimaan_barang', list); }
+    function getSupplier() { return Store.get('supplier', []) || []; }
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+    function getCOA() { return Store.get('chart_of_accounts', []) || []; }
+
+    function akunPersediaanBB() { return getCOA().find(a => a.kategori === 'Bahan Baku'); }
+    function akunUtangUsaha() { return getCOA().find(a => a.kode === '2101' || (a.nama || '').toLowerCase().includes('utang usaha')); }
+
+    function sudahDibayar(fakturId) {
+      return getBayar().filter(b => b.fakturId === fakturId).reduce((s, b) => s + b.nominal, 0);
+    }
+    function sisaTagihan(faktur) { return faktur.totalNilai - sudahDibayar(faktur.id); }
+    function statusFaktur(faktur) {
+      const sisa = sisaTagihan(faktur);
+      if (sisa <= 0.01) return 'Lunas';
+      if (sisa < faktur.totalNilai) return 'Sebagian';
+      return 'Belum Lunas';
+    }
+
+    function renderRingkasan() {
+      const list = getFaktur();
+      document.getElementById('totalFaktur').textContent = list.length;
+      const totalUtang = list.reduce((s, f) => s + Math.max(0, sisaTagihan(f)), 0);
+      document.getElementById('totalUtang').textContent = Fmt.rupiah(totalUtang);
+    }
+
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      const penerimaan = getPenerimaan().filter(p => !p.sudahDifaktur);
+      if (penerimaan.length === 0) {
+        box.innerHTML = `<div class="alert alert-info">ℹ️ Tidak ada penerimaan barang yang menunggu faktur saat ini.</div>`;
+        return;
+      }
+      box.innerHTML = '';
+    }
+
+    function isiDropdownPenerimaan() {
+      const sel = document.getElementById('penerimaanId');
+      const list = getPenerimaan().filter(p => !p.sudahDifaktur);
+
+      if (list.length === 0) {
+        sel.innerHTML = '<option value="">— Tidak ada —</option>';
+        return;
+      }
+
+      sel.innerHTML = '<option value="">— Pilih Penerimaan —</option>' +
+        list.map(p => `<option value="${p.id}">${esc(p.noPenerimaan)} — ${esc(p.supplierNama)} (${Fmt.rupiah(p.totalNilai)})</option>`).join('');
+    }
+
+    function updatePreview() {
+      const id = document.getElementById('penerimaanId').value;
+      if (!id) {
+        document.getElementById('tglJatuhTempoTampil').value = '';
+        document.getElementById('nilaiTampil').value = 'Rp 0';
+        return;
+      }
+
+      const penerimaan = getPenerimaan().find(p => p.id === id);
+      const supplier = getSupplier().find(s => s.id === penerimaan.supplierId);
+      const termin = supplier ? Number(supplier.termin) || 0 : 0;
+
+      const tglFaktur = document.getElementById('tglFaktur').value || Fmt.today();
+      const jatuhTempo = new Date(tglFaktur);
+      jatuhTempo.setDate(jatuhTempo.getDate() + termin);
+
+      document.getElementById('tglJatuhTempoTampil').value = `${Fmt.tanggal(jatuhTempo.toISOString().split('T')[0])} (termin ${termin} hari)`;
+      document.getElementById('nilaiTampil').value = Fmt.rupiah(penerimaan.totalNilai);
+    }
+    document.getElementById('penerimaanId').addEventListener('change', updatePreview);
+    document.getElementById('tglFaktur').addEventListener('change', updatePreview);
+
+    document.getElementById('formFaktur').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const penerimaanId = document.getElementById('penerimaanId').value;
+      if (!penerimaanId) { notify('❌ Pilih penerimaan barang dulu', 'danger'); return; }
+
+      const penerimaan = getPenerimaan().find(p => p.id === penerimaanId);
+      const supplier = getSupplier().find(s => s.id === penerimaan.supplierId);
+      const termin = supplier ? Number(supplier.termin) || 0 : 0;
+
+      const tglFaktur = document.getElementById('tglFaktur').value || Fmt.today();
+      const jatuhTempo = new Date(tglFaktur);
+      jatuhTempo.setDate(jatuhTempo.getDate() + termin);
+
+      const list = getFaktur();
+      const data = {
+        id: IDGen.generate('FKB'),
+        noFaktur: 'FKB-' + String(list.length + 1).padStart(4, '0'),
+        noFakturSupplier: document.getElementById('noFakturSupplier').value.trim(),
+        penerimaanId,
+        poId: penerimaan.poId,
+        noPO: penerimaan.noPO,
+        supplierId: penerimaan.supplierId,
+        supplierNama: penerimaan.supplierNama,
+        tglFaktur,
+        tglJatuhTempo: jatuhTempo.toISOString().split('T')[0],
+        items: penerimaan.items,
+        totalNilai: penerimaan.totalNilai,
+        createdAt: new Date().toISOString(),
+      };
+      list.push(data);
+      setFaktur(list);
+
+      // Tandai penerimaan sudah difaktur
+      const penerimaanList = getPenerimaan();
+      const idx = penerimaanList.findIndex(p => p.id === penerimaanId);
+      if (idx >= 0) { penerimaanList[idx].sudahDifaktur = true; setPenerimaan(penerimaanList); }
+
+      // Jurnal: Persediaan Bahan Baku (Dr) / Utang Usaha (Cr)
+      const persediaan = akunPersediaanBB();
+      const utang = akunUtangUsaha();
+      if (persediaan && utang && data.totalNilai > 0) {
+        const jurnalList = getJurnal();
+        jurnalList.push({
+          id: IDGen.generate('JRN'),
+          tanggal: tglFaktur,
+          ref: data.noFaktur,
+          keterangan: `Faktur pembelian ${data.noFaktur} — ${data.supplierNama}`,
+          source: 'faktur_pembelian',
+          sourceId: data.id,
+          detail: [
+            { kode: persediaan.kode, nama: persediaan.nama, debit: data.totalNilai, kredit: 0 },
+            { kode: utang.kode, nama: utang.nama, debit: 0, kredit: data.totalNilai },
+          ],
+          createdAt: new Date().toISOString(),
+        });
+        Store.set('jurnal', jurnalList);
+      }
+
+      notify(`✅ ${data.noFaktur} dicatat — Utang Usaha bertambah ${Fmt.rupiah(data.totalNilai)}`, 'success');
+      document.getElementById('formFaktur').reset();
+      document.getElementById('tglFaktur').value = Fmt.today();
+      updatePreview();
+      renderTabelFaktur();
+      isiDropdownPenerimaan();
+      isiDropdownFaktur();
+      cekPrasyarat();
+      renderRingkasan();
+    });
+
+    function renderTabelFaktur() {
+      const list = getFaktur().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const tbody = document.getElementById('tabelFaktur');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Belum ada faktur pembelian.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(f => {
+        const sisa = sisaTagihan(f);
+        const status = statusFaktur(f);
+        const badge = status === 'Lunas' ? 'badge-success' : status === 'Sebagian' ? 'badge-warning' : 'badge-danger';
+        return `
+          <tr>
+            <td><strong>${esc(f.noFaktur)}</strong>${f.noFakturSupplier ? `<br><span class="text-muted" style="font-size:0.8rem;">Ref: ${esc(f.noFakturSupplier)}</span>` : ''}</td>
+            <td>${esc(f.supplierNama)}</td>
+            <td>${Fmt.tanggal(f.tglFaktur)}</td>
+            <td>${Fmt.tanggal(f.tglJatuhTempo)}</td>
+            <td class="text-right">${Fmt.rupiah(f.totalNilai)}</td>
+            <td class="text-right">${Fmt.rupiah(Math.max(0, sisa))}</td>
+            <td class="text-center"><span class="badge ${badge}">${status}</span></td>
+          </tr>`;
+      }).join('');
+    }
+
+    function isiDropdownFaktur() {
+      const sel = document.getElementById('fakturId');
+      const list = getFaktur().filter(f => statusFaktur(f) !== 'Lunas');
+
+      if (list.length === 0) {
+        sel.innerHTML = '<option value="">— Semua faktur sudah lunas —</option>';
+        return;
+      }
+
+      sel.innerHTML = '<option value="">— Pilih Faktur Belum Lunas —</option>' +
+        list.map(f => `<option value="${f.id}">${esc(f.noFaktur)} — ${esc(f.supplierNama)} (sisa ${Fmt.rupiah(sisaTagihan(f))})</option>`).join('');
+    }
+
+    document.getElementById('fakturId').addEventListener('change', function () {
+      const f = getFaktur().find(x => x.id === this.value);
+      document.getElementById('nominalBayar').value = f ? sisaTagihan(f) : '';
+    });
+
+    function isiDropdownAkunBayar() {
+      const sel = document.getElementById('akunBayar');
+      const coa = getCOA().filter(a => a.kode === '1101' || a.kode === '1102' || (a.nama || '').toLowerCase().includes('kas') || (a.nama || '').toLowerCase().includes('bank'));
+      sel.innerHTML = '<option value="">— Pilih Kas/Bank —</option>' +
+        coa.map(a => `<option value="${a.kode}" data-nama="${esc(a.nama)}">${esc(a.kode)} — ${esc(a.nama)}</option>`).join('');
+    }
+
+    document.getElementById('formBayar').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const fakturId = document.getElementById('fakturId').value;
+      if (!fakturId) { notify('❌ Pilih faktur dulu', 'danger'); return; }
+
+      const faktur = getFaktur().find(f => f.id === fakturId);
+      const sisa = sisaTagihan(faktur);
+
+      const nominal = Number(document.getElementById('nominalBayar').value) || 0;
+      if (nominal <= 0) { notify('❌ Nominal harus > 0', 'danger'); return; }
+      if (nominal > sisa + 0.01) { notify(`❌ Nominal melebihi sisa tagihan (${Fmt.rupiah(sisa)})`, 'danger'); return; }
+
+      const akunSel = document.getElementById('akunBayar');
+      const akunKode = akunSel.value;
+      if (!akunKode) { notify('❌ Pilih akun pembayaran', 'danger'); return; }
+      const akunNama = akunSel.selectedOptions[0].dataset.nama;
+
+      const utang = akunUtangUsaha();
+      if (!utang) { notify('❌ Akun "Utang Usaha" belum ada di COA', 'danger'); return; }
+
+      const data = {
+        id: IDGen.generate('BAYARB'),
+        fakturId,
+        noFaktur: faktur.noFaktur,
+        tglBayar: document.getElementById('tglBayar').value || Fmt.today(),
+        akunKode,
+        akunNama,
+        nominal,
+        createdAt: new Date().toISOString(),
+      };
+
+      const list = getBayar();
+      list.push(data);
+      setBayar(list);
+
+      // Jurnal: Utang Usaha (Dr) / Akun Kas-Bank (Cr)
+      const jurnalList = getJurnal();
+      jurnalList.push({
+        id: IDGen.generate('JRN'),
+        tanggal: data.tglBayar,
+        ref: data.noFaktur,
+        keterangan: `Pembayaran ${data.noFaktur} ke ${faktur.supplierNama}`,
+        source: 'pembayaran_pembelian',
+        sourceId: data.id,
+        detail: [
+          { kode: utang.kode, nama: utang.nama, debit: nominal, kredit: 0 },
+          { kode: akunKode, nama: akunNama, debit: 0, kredit: nominal },
+        ],
+        createdAt: new Date().toISOString(),
+      });
+      Store.set('jurnal', jurnalList);
+
+      notify(`✅ Pembayaran ${Fmt.rupiah(nominal)} untuk ${faktur.noFaktur} dicatat`, 'success');
+      document.getElementById('formBayar').reset();
+      document.getElementById('tglBayar').value = Fmt.today();
+      renderTabelFaktur();
+      renderTabelBayar();
+      isiDropdownFaktur();
+      renderRingkasan();
+    });
+
+    function renderTabelBayar() {
+      const list = getBayar().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const tbody = document.getElementById('tabelBayar');
+      document.getElementById('totalBayar').textContent = `${list.length} pembayaran`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="table-empty">Belum ada pembayaran.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td>${Fmt.tanggal(b.tglBayar)}</td>
+          <td>${esc(b.noFaktur)}</td>
+          <td>${esc(b.akunKode)} — ${esc(b.akunNama)}</td>
+          <td class="text-right"><strong>${Fmt.rupiah(b.nominal)}</strong></td>
+        </tr>
+      `).join('');
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    isiDropdownPenerimaan();
+    isiDropdownFaktur();
+    isiDropdownAkunBayar();
+    document.getElementById('tglFaktur').value = Fmt.today();
+    document.getElementById('tglBayar').value = Fmt.today();
+    renderTabelFaktur();
+    renderTabelBayar();
+    renderRingkasan();
+    cekPrasyarat();
+  </script>
+</body>
+</html>

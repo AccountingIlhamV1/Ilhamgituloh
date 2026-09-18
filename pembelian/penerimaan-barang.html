@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Penerimaan Barang — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Pembelian</a>
+        <span>/</span>
+        <span class="current">Penerimaan Barang</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📥 Penerimaan Barang</h1>
+      <p class="subtitle">
+        Barang datang dari supplier — <strong>stok bahan baku bertambah</strong>
+        saat ini juga. Boleh diterima bertahap (partial) kalau supplier kirim
+        tidak sekaligus. Nilai baru <strong>dijurnal saat Faktur Pembelian</strong>
+        dicatat.
+      </p>
+    </section>
+
+    <div id="alertPrasyarat"></div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title">➕ Catat Penerimaan Barang</h2>
+
+      <form id="formTerima" autocomplete="off">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="poId">Pilih PO <span class="required">*</span></label>
+            <select id="poId" class="form-select" required>
+              <option value="">— Pilih PO —</option>
+            </select>
+            <div class="form-hint">PO yang belum diterima penuh</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tglTerima">Tanggal Terima</label>
+            <input type="date" id="tglTerima" class="form-control" />
+          </div>
+        </div>
+
+        <div id="panelTerima" class="hidden" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+
+          <h3 style="font-size:1rem; font-weight:700; margin-bottom:12px;">📦 Item Diterima</h3>
+
+          <div class="table-wrapper mb-16">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Bahan</th>
+                  <th class="text-right" style="width:110px;">Dipesan</th>
+                  <th class="text-right" style="width:110px;">Sudah Diterima</th>
+                  <th class="text-right" style="width:110px;">Sisa</th>
+                  <th style="width:130px;">Qty Diterima Skrg</th>
+                </tr>
+              </thead>
+              <tbody id="tabelTerima"></tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-info">
+            💡 Saat disimpan, stok bahan baku bertambah dan harga rata-rata
+            tertimbang otomatis diperbarui sesuai harga di PO.
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 Simpan Penerimaan</button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== RIWAYAT ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Riwayat Penerimaan</h2>
+        <span class="badge badge-primary" id="totalRiwayat">0 penerimaan</span>
+      </div>
+      <div id="daftarTerima"></div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    const KEY = 'penerimaan_barang';
+    let baris = [];
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+    function getPO() { return Store.get('purchase_order', []) || []; }
+    function setPO(list) { Store.set('purchase_order', list); }
+    function getBahan() { return Store.get('bahan_baku', []) || []; }
+    function setBahan(list) { Store.set('bahan_baku', list); }
+
+    function sudahDiterima(poId, bahanId) {
+      return getDaftar()
+        .filter(t => t.poId === poId)
+        .reduce((sum, t) => {
+          const it = t.items.find(x => x.bahanId === bahanId);
+          return sum + (it ? it.qtyTerima : 0);
+        }, 0);
+    }
+
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      const po = getPO().filter(p => p.status === 'Dikirim' || p.status === 'Diterima Sebagian');
+      if (po.length === 0) {
+        box.innerHTML = `<div class="alert alert-warning">⚠️ <div><strong>Tidak ada PO yang menunggu penerimaan.</strong> Buat dulu di <a href="purchase-order.html">Purchase Order</a>.</div></div>`;
+        return;
+      }
+      box.innerHTML = '';
+    }
+
+    function isiDropdownPO() {
+      const sel = document.getElementById('poId');
+      const po = getPO().filter(p => p.status === 'Dikirim' || p.status === 'Diterima Sebagian');
+
+      if (po.length === 0) {
+        sel.innerHTML = '<option value="">— Tidak ada PO tersedia —</option>';
+        return;
+      }
+
+      const currentVal = sel.value;
+      sel.innerHTML = '<option value="">— Pilih PO —</option>' +
+        po.map(p => `<option value="${p.id}">${esc(p.noPO)} — ${esc(p.supplierNama)} [${esc(p.status)}]</option>`).join('');
+      if (currentVal) sel.value = currentVal;
+    }
+
+    function loadPO() {
+      const poId = document.getElementById('poId').value;
+      const panel = document.getElementById('panelTerima');
+
+      if (!poId) { panel.classList.add('hidden'); baris = []; return; }
+
+      const po = getPO().find(p => p.id === poId);
+      if (!po) { panel.classList.add('hidden'); return; }
+
+      baris = po.items.map(it => {
+        const diterima = sudahDiterima(poId, it.bahanId);
+        const sisa = it.qtyPesan - diterima;
+        return { bahanId: it.bahanId, kode: it.kode, nama: it.nama, satuan: it.satuan, hargaSatuan: it.hargaSatuan, qtyPesan: it.qtyPesan, sudahDiterima: diterima, sisa, qtyTerima: Math.max(0, sisa) };
+      });
+
+      renderBaris();
+      panel.classList.remove('hidden');
+    }
+    document.getElementById('poId').addEventListener('change', loadPO);
+
+    function renderBaris() {
+      const tbody = document.getElementById('tabelTerima');
+
+      if (baris.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">-</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = baris.map((b, i) => `
+        <tr>
+          <td>${esc(b.kode)} — ${esc(b.nama)}</td>
+          <td class="text-right">${Fmt.angka(b.qtyPesan)} ${esc(b.satuan)}</td>
+          <td class="text-right">${Fmt.angka(b.sudahDiterima)} ${esc(b.satuan)}</td>
+          <td class="text-right">${Fmt.angka(b.sisa)} ${esc(b.satuan)}</td>
+          <td><input type="number" class="form-control" min="0" max="${b.sisa}" step="any" value="${b.qtyTerima}" onchange="ubahQty(${i}, this.value)" /></td>
+        </tr>`).join('');
+    }
+
+    function ubahQty(i, val) {
+      let v = Number(val) || 0;
+      if (v > baris[i].sisa) { v = baris[i].sisa; notify('⚠️ Qty tidak boleh melebihi sisa pesanan', 'warning'); }
+      baris[i].qtyTerima = v;
+      renderBaris();
+    }
+
+    document.getElementById('formTerima').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const poId = document.getElementById('poId').value;
+      if (!poId) { notify('❌ Pilih PO dulu', 'danger'); return; }
+
+      const diterima = baris.filter(b => b.qtyTerima > 0);
+      if (diterima.length === 0) { notify('❌ Isi minimal 1 qty diterima', 'danger'); return; }
+
+      const po = getPO().find(p => p.id === poId);
+      const list = getDaftar();
+
+      const items = diterima.map(b => ({ bahanId: b.bahanId, kode: b.kode, nama: b.nama, satuan: b.satuan, qtyTerima: b.qtyTerima, hargaSatuan: b.hargaSatuan, subtotal: b.qtyTerima * b.hargaSatuan }));
+      const totalNilai = items.reduce((s, it) => s + it.subtotal, 0);
+
+      const data = {
+        id: IDGen.generate('TERIMA'),
+        noPenerimaan: 'RCV-' + String(list.length + 1).padStart(4, '0'),
+        poId,
+        noPO: po.noPO,
+        supplierId: po.supplierId,
+        supplierNama: po.supplierNama,
+        tglTerima: document.getElementById('tglTerima').value || Fmt.today(),
+        items,
+        totalNilai,
+        sudahDifaktur: false,
+        createdAt: new Date().toISOString(),
+      };
+      list.push(data);
+      setDaftar(list);
+
+      // Tambah stok bahan baku (rata-rata tertimbang)
+      const bahanList = getBahan();
+      items.forEach(it => {
+        const idx = bahanList.findIndex(b => b.id === it.bahanId);
+        if (idx >= 0) {
+          const b = bahanList[idx];
+          const stokLama = Number(b.stok) || 0;
+          const hargaLama = Number(b.harga) || 0;
+          const stokBaru = stokLama + it.qtyTerima;
+          const hargaBaru = stokBaru > 0 ? ((stokLama * hargaLama) + (it.qtyTerima * it.hargaSatuan)) / stokBaru : it.hargaSatuan;
+          b.stok = stokBaru;
+          b.harga = hargaBaru;
+          bahanList[idx] = b;
+        }
+      });
+      setBahan(bahanList);
+
+      // Update status PO
+      const poList = getPO();
+      const idxPO = poList.findIndex(p => p.id === poId);
+      if (idxPO >= 0) {
+        const semuaSelesai = poList[idxPO].items.every(it => sudahDiterima(poId, it.bahanId) >= it.qtyPesan);
+        poList[idxPO].status = semuaSelesai ? 'Selesai' : 'Diterima Sebagian';
+        setPO(poList);
+      }
+
+      notify(`✅ Penerimaan ${data.noPenerimaan} tercatat — stok bertambah`, 'success');
+      resetForm();
+      renderRiwayat();
+      isiDropdownPO();
+      cekPrasyarat();
+    });
+
+    function renderRiwayat() {
+      const list = getDaftar().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const container = document.getElementById('daftarTerima');
+      document.getElementById('totalRiwayat').textContent = `${list.length} penerimaan`;
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="alert alert-info">Belum ada penerimaan barang.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(t => {
+        const rows = t.items.map(it => `
+          <tr><td>${esc(it.kode)} — ${esc(it.nama)}</td><td class="text-right">${Fmt.angka(it.qtyTerima)} ${esc(it.satuan)}</td><td class="text-right">${Fmt.rupiah(it.hargaSatuan)}</td><td class="text-right">${Fmt.rupiah(it.subtotal)}</td></tr>
+        `).join('');
+        return `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="flex-between mb-16">
+              <div>
+                <h3 style="color:var(--primary); margin-bottom:4px;">📥 ${esc(t.noPenerimaan)} — ${esc(t.noPO)}</h3>
+                <div class="text-muted" style="font-size:0.88rem;">
+                  ${esc(t.supplierNama)} | ${Fmt.tanggal(t.tglTerima)} | Total: <strong>${Fmt.rupiah(t.totalNilai)}</strong>
+                  ${t.sudahDifaktur ? ' | <span class="badge badge-success">✅ Sudah difaktur</span>' : ' | <span class="badge badge-warning">⏳ Belum difaktur</span>'}
+                </div>
+              </div>
+              ${!t.sudahDifaktur ? `<button class="btn btn-sm btn-danger" onclick="rollbackTerima('${t.id}')">↩️ Rollback</button>` : ''}
+            </div>
+            <div class="table-wrapper"><table class="table"><thead><tr><th>Bahan</th><th class="text-right" style="width:120px;">Qty</th><th class="text-right" style="width:140px;">Harga</th><th class="text-right" style="width:140px;">Subtotal</th></tr></thead><tbody>${rows}</tbody></table></div>
+          </div>`;
+      }).join('');
+    }
+
+    function rollbackTerima(id) {
+      const t = getDaftar().find(x => x.id === id);
+      if (!t) return;
+      if (t.sudahDifaktur) { notify('❌ Penerimaan yang sudah difaktur tidak bisa di-rollback', 'danger'); return; }
+      if (!confirm(`Rollback penerimaan ${t.noPenerimaan}? Stok bahan baku akan dikurangi.`)) return;
+
+      // Kurangi stok (harga rata-rata TIDAK direstore persis, batas wajar untuk sistem sederhana)
+      const bahanList = getBahan();
+      t.items.forEach(it => {
+        const idx = bahanList.findIndex(b => b.id === it.bahanId);
+        if (idx >= 0) bahanList[idx].stok = Math.max(0, Number(bahanList[idx].stok) - it.qtyTerima);
+      });
+      setBahan(bahanList);
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+
+      // Recompute status PO
+      const poList = getPO();
+      const idxPO = poList.findIndex(p => p.id === t.poId);
+      if (idxPO >= 0) {
+        const totalDiterima = poList[idxPO].items.reduce((s, it) => s + sudahDiterima(t.poId, it.bahanId), 0);
+        poList[idxPO].status = totalDiterima === 0 ? 'Dikirim' : 'Diterima Sebagian';
+        setPO(poList);
+      }
+
+      notify('↩️ Penerimaan di-rollback', 'warning');
+      renderRiwayat();
+      isiDropdownPO();
+      cekPrasyarat();
+    }
+
+    function resetForm() {
+      document.getElementById('formTerima').reset();
+      document.getElementById('tglTerima').value = Fmt.today();
+      document.getElementById('panelTerima').classList.add('hidden');
+      baris = [];
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    isiDropdownPO();
+    document.getElementById('tglTerima').value = Fmt.today();
+    renderRiwayat();
+    cekPrasyarat();
+  </script>
+</body>
+</html>
