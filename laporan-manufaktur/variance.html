@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analisis Variance — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Laporan Manufaktur</a>
+        <span>/</span>
+        <span class="current">Analisis Variance</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📉 Analisis Variance (Selisih Biaya)</h1>
+      <p class="subtitle">
+        Membandingkan biaya yang <strong>dibebankan</strong> (tarif standar)
+        dengan biaya <strong>sesungguhnya</strong> (aktual terjadi).
+      </p>
+    </section>
+
+    <!-- ===== VARIANCE BOP ===== -->
+    <section class="card">
+      <h2 class="card-title">⚙️ Variance BOP (Overhead Pabrik)</h2>
+
+      <div class="table-wrapper mb-16">
+        <table class="table">
+          <tbody>
+            <tr><td>BOP Dibebankan (tarif standar × jam pakai)</td><td class="text-right" id="totalDibebankan">Rp 0</td></tr>
+            <tr><td>BOP Sesungguhnya (biaya aktual: listrik, penyusutan, dll)</td><td class="text-right" id="totalSesungguhnya">Rp 0</td></tr>
+            <tr style="font-weight:700; background:var(--primary-light);"><td id="labelSelisih">Selisih BOP</td><td class="text-right" id="nilaiSelisih">Rp 0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="penjelasanVariance"></div>
+    </section>
+
+    <!-- ===== DETAIL BULANAN ===== -->
+    <section class="card">
+      <h2 class="card-title">📅 Variance BOP per Bulan</h2>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead><tr><th>Bulan</th><th class="text-right" style="width:150px;">Dibebankan</th><th class="text-right" style="width:150px;">Sesungguhnya</th><th class="text-right" style="width:150px;">Selisih</th><th class="text-center" style="width:150px;">Status</th></tr></thead>
+          <tbody id="tabelBulanan"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== KETERBATASAN ===== -->
+    <div class="alert alert-info">
+      ℹ️ <div>
+        <strong>Catatan keterbatasan:</strong> Analisis <em>Varians Harga/Efisiensi Bahan Baku</em>
+        dan <em>Varians Tarif/Efisiensi Tenaga Kerja</em> butuh angka "biaya standar" yang terpisah
+        dari harga aktual — field ini belum ada di Master Data (harga bahan baku &amp; tarif karyawan
+        saat ini dianggap sekaligus sebagai standar dan aktual). Kalau nanti dibutuhkan, tambahkan
+        field "Harga/Tarif Standar" di Master Data untuk laporan varians yang lebih lengkap.
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getBOPDibebankan() { return Store.get('bop_dibebankan', []) || []; }
+    function getBOPAktual() { return Store.get('bop_aktual', []) || []; }
+
+    function render() {
+      const dibebankan = getBOPDibebankan();
+      const aktual = getBOPAktual();
+
+      const totalDibebankan = dibebankan.reduce((s, b) => s + b.totalNilai, 0);
+      const totalSesungguhnya = aktual.reduce((s, a) => s + a.nominal, 0);
+      const selisih = totalDibebankan - totalSesungguhnya;
+
+      document.getElementById('totalDibebankan').textContent = Fmt.rupiah(totalDibebankan);
+      document.getElementById('totalSesungguhnya').textContent = Fmt.rupiah(totalSesungguhnya);
+      document.getElementById('nilaiSelisih').textContent = Fmt.rupiah(Math.abs(selisih));
+
+      const label = document.getElementById('labelSelisih');
+      const penjelasan = document.getElementById('penjelasanVariance');
+
+      if (Math.abs(selisih) < 1) {
+        label.textContent = 'Selisih BOP (Impas)';
+        penjelasan.innerHTML = `<div class="alert alert-success">✓ <div>BOP yang dibebankan pas sama dengan biaya aktual. Tidak ada selisih yang perlu disesuaikan.</div></div>`;
+      } else if (selisih > 0) {
+        label.textContent = 'Selisih Lebih Dibebankan (Overapplied)';
+        penjelasan.innerHTML = `<div class="alert alert-warning">⚠️ <div><strong>Overapplied</strong> — BOP yang dibebankan ke produk (${Fmt.rupiah(totalDibebankan)}) lebih besar dari biaya aktual (${Fmt.rupiah(totalSesungguhnya)}). Artinya harga pokok produk sedikit "kemahalan" dibanding kenyataan. Selisih ini biasanya dikreditkan ke Harga Pokok Penjualan di akhir periode.</div></div>`;
+      } else {
+        label.textContent = 'Selisih Kurang Dibebankan (Underapplied)';
+        penjelasan.innerHTML = `<div class="alert alert-danger">⚠️ <div><strong>Underapplied</strong> — BOP yang dibebankan ke produk (${Fmt.rupiah(totalDibebankan)}) lebih kecil dari biaya aktual (${Fmt.rupiah(totalSesungguhnya)}). Artinya harga pokok produk sedikit "kemurahan" dibanding kenyataan. Selisih ini biasanya didebitkan ke Harga Pokok Penjualan di akhir periode.</div></div>`;
+      }
+
+      // Rincian per bulan
+      const bulanMap = {};
+      dibebankan.forEach(b => {
+        const bulan = String(b.tglBOP).slice(0, 7);
+        if (!bulanMap[bulan]) bulanMap[bulan] = { dibebankan: 0, aktual: 0 };
+        bulanMap[bulan].dibebankan += b.totalNilai;
+      });
+      aktual.forEach(a => {
+        const bulan = String(a.tanggal).slice(0, 7);
+        if (!bulanMap[bulan]) bulanMap[bulan] = { dibebankan: 0, aktual: 0 };
+        bulanMap[bulan].aktual += a.nominal;
+      });
+
+      const bulanList = Object.keys(bulanMap).sort();
+      const tbody = document.getElementById('tabelBulanan');
+
+      if (bulanList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Belum ada data BOP tercatat.</td></tr>`;
+      } else {
+        tbody.innerHTML = bulanList.map(bulan => {
+          const d = bulanMap[bulan].dibebankan;
+          const a = bulanMap[bulan].aktual;
+          const sel = d - a;
+          const status = Math.abs(sel) < 1 ? '✅ Impas' : sel > 0 ? '📈 Overapplied' : '📉 Underapplied';
+          return `
+            <tr>
+              <td>${bulan}</td>
+              <td class="text-right">${Fmt.rupiah(d)}</td>
+              <td class="text-right">${Fmt.rupiah(a)}</td>
+              <td class="text-right">${Fmt.rupiah(Math.abs(sel))}</td>
+              <td class="text-center">${status}</td>
+            </tr>`;
+        }).join('');
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>

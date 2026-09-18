@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harga Pokok Penjualan — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Laporan Manufaktur</a>
+        <span>/</span>
+        <span class="current">Harga Pokok Penjualan</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>💰 Laporan Harga Pokok Penjualan</h1>
+      <p class="subtitle">
+        Persediaan Barang Jadi Awal + Harga Pokok Produksi − Persediaan
+        Barang Jadi Akhir = Harga Pokok Penjualan (HPP) periode berjalan.
+      </p>
+    </section>
+
+    <div class="alert alert-info">
+      💡 Persediaan Awal dianggap Rp0 (keterbatasan yang sama seperti
+      Harga Pokok Produksi — sistem belum mengenal batas periode terkunci).
+    </div>
+
+    <!-- ===== FORMULA ===== -->
+    <section class="card">
+      <h2 class="card-title">📐 Perhitungan</h2>
+      <div class="table-wrapper">
+        <table class="table"><tbody id="tabelFormula"></tbody></table>
+      </div>
+    </section>
+
+    <div id="verifikasi"></div>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getPakai() { return Store.get('pemakaian_bahan', []) || []; }
+    function getBTKL() { return Store.get('btkl', []) || []; }
+    function getBOP() { return Store.get('bop_dibebankan', []) || []; }
+    function getSPK() { return Store.get('spk', []) || []; }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getFakturJual() { return Store.get('faktur_penjualan', []) || []; }
+
+    function render() {
+      // HP Produksi (sama seperti laporan sebelumnya)
+      const totalBBB = getPakai().reduce((s, p) => s + p.totalNilai, 0);
+      const totalBTKL = getBTKL().reduce((s, b) => s + b.totalNilai, 0);
+      const totalBOP = getBOP().reduce((s, b) => s + b.totalNilai, 0);
+      const totalBiaya = totalBBB + totalBTKL + totalBOP;
+
+      const spk = getSPK();
+      const bdpAkhir = spk.filter(s => s.status === 'Berjalan').reduce((sum, s) => {
+        const bbb = getPakai().filter(p => p.spkId === s.id).reduce((x, p) => x + p.totalNilai, 0);
+        const btkl = getBTKL().filter(b => b.spkId === s.id).reduce((x, b) => x + b.totalNilai, 0);
+        const bop = getBOP().filter(b => b.spkId === s.id).reduce((x, b) => x + b.totalNilai, 0);
+        return sum + bbb + btkl + bop;
+      }, 0);
+      const hpProduksi = totalBiaya - bdpAkhir;
+
+      // Persediaan Barang Jadi Akhir (saat ini)
+      const persediaanAkhir = getProduk().reduce((s, p) => s + (Number(p.stok) * Number(p.hargaPokok)), 0);
+      const persediaanAwal = 0;
+
+      const hpp = persediaanAwal + hpProduksi - persediaanAkhir;
+
+      document.getElementById('tabelFormula').innerHTML = `
+        <tr><td>Persediaan Barang Jadi Awal</td><td class="text-right">${Fmt.rupiah(persediaanAwal)}</td></tr>
+        <tr><td>(+) Harga Pokok Produksi</td><td class="text-right">${Fmt.rupiah(hpProduksi)}</td></tr>
+        <tr><td>(-) Persediaan Barang Jadi Akhir</td><td class="text-right">${Fmt.rupiah(persediaanAkhir)}</td></tr>
+        <tr style="font-weight:700; background:var(--primary-light);"><td>= HARGA POKOK PENJUALAN</td><td class="text-right">${Fmt.rupiah(hpp)}</td></tr>
+      `;
+
+      // Verifikasi silang dengan total HPP di faktur penjualan (jurnal aktual)
+      const totalHPPFaktur = getFakturJual().reduce((s, f) => s + f.totalHPP, 0);
+      const selisih = Math.abs(hpp - totalHPPFaktur);
+      const box = document.getElementById('verifikasi');
+
+      box.innerHTML = selisih < 1
+        ? `<div class="alert alert-success">✓ <div><strong>Cocok!</strong> Hasil formula (${Fmt.rupiah(hpp)}) sama persis dengan total HPP yang sudah dijurnal di Faktur Penjualan (${Fmt.rupiah(totalHPPFaktur)}).</div></div>`
+        : `<div class="alert alert-warning">⚠️ <div>Selisih ${Fmt.rupiah(selisih)} antara formula (${Fmt.rupiah(hpp)}) dan HPP aktual di Faktur Penjualan (${Fmt.rupiah(totalHPPFaktur)}) — kemungkinan ada rollback yang tidak sinkron dengan harga pokok rata-rata tertimbang terkini.</div></div>`;
+    }
+
+    render();
+  </script>
+</body>
+</html>

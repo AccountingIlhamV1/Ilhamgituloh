@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Biaya per Departemen — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Laporan Manufaktur</a>
+        <span>/</span>
+        <span class="current">Biaya per Departemen</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🏢 Biaya per Departemen</h1>
+      <p class="subtitle">
+        Sistem ini memakai <strong>job-order costing</strong> (biaya per SPK),
+        bukan process costing per departemen formal. Sebagai pendekatan
+        terdekat, laporan ini mengelompokkan biaya BOP berdasarkan
+        <strong>Work Center</strong> — karena tiap work center pada dasarnya
+        mewakili satu stasiun/departemen kerja di pabrik.
+      </p>
+    </section>
+
+    <section class="card">
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Work Center (Departemen)</th>
+              <th class="text-right" style="width:130px;">Total Jam Pakai</th>
+              <th class="text-right" style="width:150px;">Tarif BOP/Jam</th>
+              <th class="text-right" style="width:150px;">Total Biaya BOP</th>
+              <th class="text-right" style="width:100px;">% dari Total</th>
+            </tr>
+          </thead>
+          <tbody id="tabelDept"></tbody>
+          <tfoot>
+            <tr style="background:var(--primary-light); font-weight:700;">
+              <td colspan="3" class="text-right">TOTAL BOP DIBEBANKAN</td>
+              <td class="text-right" id="grandTotal">Rp 0</td>
+              <td class="text-right">100%</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- Rincian per SPK dalam tiap WC -->
+    <section class="card">
+      <h2 class="card-title">📋 Rincian per SPK</h2>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead><tr><th>Work Center</th><th>No SPK</th><th style="width:110px;">Tanggal</th><th class="text-right" style="width:100px;">Jam</th><th class="text-right" style="width:150px;">Biaya</th></tr></thead>
+          <tbody id="tabelRincian"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getWC() { return Store.get('work_center', []) || []; }
+    function getBOP() { return Store.get('bop_dibebankan', []) || []; }
+
+    function render() {
+      const wc = getWC();
+      const bop = getBOP();
+
+      // Flatten semua items BOP dibebankan
+      const flat = [];
+      bop.forEach(b => b.items.forEach(it => flat.push({ ...it, tglBOP: b.tglBOP, noSPK: b.noSPK })));
+
+      const grandTotal = flat.reduce((s, it) => s + it.biaya, 0);
+
+      const tbody = document.getElementById('tabelDept');
+      if (wc.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Belum ada Work Center.</td></tr>`;
+      } else {
+        tbody.innerHTML = wc.map(w => {
+          const items = flat.filter(it => it.workCenterId === w.id);
+          const totalJam = items.reduce((s, it) => s + it.jam, 0);
+          const totalBiaya = items.reduce((s, it) => s + it.biaya, 0);
+          const pct = grandTotal > 0 ? (totalBiaya / grandTotal) * 100 : 0;
+
+          return `
+            <tr>
+              <td><strong>${esc(w.kode)}</strong> — ${esc(w.nama)}</td>
+              <td class="text-right">${Fmt.angka(totalJam)} jam</td>
+              <td class="text-right">${Fmt.rupiah(w.tarifBOP)}</td>
+              <td class="text-right"><strong>${Fmt.rupiah(totalBiaya)}</strong></td>
+              <td class="text-right">${pct.toFixed(1)}%</td>
+            </tr>`;
+        }).join('');
+      }
+
+      document.getElementById('grandTotal').textContent = Fmt.rupiah(grandTotal);
+
+      // Rincian
+      const tbodyRincian = document.getElementById('tabelRincian');
+      const rincian = flat.slice().sort((a, b) => String(b.tglBOP).localeCompare(String(a.tglBOP)));
+
+      if (rincian.length === 0) {
+        tbodyRincian.innerHTML = `<tr><td colspan="5" class="table-empty">Belum ada BOP dibebankan tercatat.</td></tr>`;
+      } else {
+        tbodyRincian.innerHTML = rincian.map(it => `
+          <tr>
+            <td>${esc(it.kode)} — ${esc(it.nama)}</td>
+            <td>${esc(it.noSPK)}</td>
+            <td>${Fmt.tanggal(it.tglBOP)}</td>
+            <td class="text-right">${Fmt.angka(it.jam)}</td>
+            <td class="text-right">${Fmt.rupiah(it.biaya)}</td>
+          </tr>`).join('');
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>

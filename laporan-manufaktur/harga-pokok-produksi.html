@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harga Pokok Produksi — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Laporan Manufaktur</a>
+        <span>/</span>
+        <span class="current">Harga Pokok Produksi</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🧮 Laporan Harga Pokok Produksi</h1>
+      <p class="subtitle">
+        Total biaya produksi sejak awal (BBB + BTKL + BOP), disesuaikan
+        dengan nilai BDP yang masih berjalan, menghasilkan nilai barang
+        yang benar-benar <strong>selesai diproduksi</strong>.
+      </p>
+    </section>
+
+    <div class="alert alert-info">
+      💡 Sistem ini belum mengenal batas periode (bulan/tahun buku terkunci),
+      jadi <strong>BDP Awal dianggap Rp0</strong> dan semua angka di bawah
+      bersifat kumulatif sejak data pertama diinput.
+    </div>
+
+    <!-- ===== FORMULA ===== -->
+    <section class="card">
+      <h2 class="card-title">📐 Perhitungan</h2>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <tbody id="tabelFormula"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== RINCIAN BIAYA ===== -->
+    <section class="card">
+      <h2 class="card-title">🧾 Rincian Elemen Biaya</h2>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead><tr><th>Elemen Biaya</th><th class="text-right" style="width:180px;">Total</th></tr></thead>
+          <tbody>
+            <tr><td>🧱 Biaya Bahan Baku (BBB)</td><td class="text-right" id="totalBBB">Rp 0</td></tr>
+            <tr><td>👷 Biaya Tenaga Kerja Langsung (BTKL)</td><td class="text-right" id="totalBTKL">Rp 0</td></tr>
+            <tr><td>⚙️ Biaya Overhead Pabrik Dibebankan (BOP)</td><td class="text-right" id="totalBOP">Rp 0</td></tr>
+          </tbody>
+          <tfoot><tr style="font-weight:700;"><td class="text-right">Total Biaya Produksi Periode</td><td class="text-right" id="totalBiaya">Rp 0</td></tr></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <div id="verifikasi"></div>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    function getPakai() { return Store.get('pemakaian_bahan', []) || []; }
+    function getBTKL() { return Store.get('btkl', []) || []; }
+    function getBOP() { return Store.get('bop_dibebankan', []) || []; }
+    function getSPK() { return Store.get('spk', []) || []; }
+    function getHasil() { return Store.get('hasil_produksi', []) || []; }
+
+    function render() {
+      const totalBBB = getPakai().reduce((s, p) => s + p.totalNilai, 0);
+      const totalBTKL = getBTKL().reduce((s, b) => s + b.totalNilai, 0);
+      const totalBOP = getBOP().reduce((s, b) => s + b.totalNilai, 0);
+      const totalBiaya = totalBBB + totalBTKL + totalBOP;
+
+      document.getElementById('totalBBB').textContent = Fmt.rupiah(totalBBB);
+      document.getElementById('totalBTKL').textContent = Fmt.rupiah(totalBTKL);
+      document.getElementById('totalBOP').textContent = Fmt.rupiah(totalBOP);
+      document.getElementById('totalBiaya').textContent = Fmt.rupiah(totalBiaya);
+
+      // BDP Akhir = nilai SPK yang masih Berjalan (belum ditutup ke Hasil Produksi)
+      const spk = getSPK();
+      const bdpAkhir = spk.filter(s => s.status === 'Berjalan').reduce((sum, s) => {
+        const bbb = getPakai().filter(p => p.spkId === s.id).reduce((x, p) => x + p.totalNilai, 0);
+        const btkl = getBTKL().filter(b => b.spkId === s.id).reduce((x, b) => x + b.totalNilai, 0);
+        const bop = getBOP().filter(b => b.spkId === s.id).reduce((x, b) => x + b.totalNilai, 0);
+        return sum + bbb + btkl + bop;
+      }, 0);
+
+      const bdpAwal = 0;
+      const hpProduksi = bdpAwal + totalBiaya - bdpAkhir;
+
+      document.getElementById('tabelFormula').innerHTML = `
+        <tr><td>BDP Awal</td><td class="text-right">${Fmt.rupiah(bdpAwal)}</td></tr>
+        <tr><td>(+) Total Biaya Produksi (BBB+BTKL+BOP)</td><td class="text-right">${Fmt.rupiah(totalBiaya)}</td></tr>
+        <tr><td>(-) BDP Akhir (SPK yang masih "Berjalan")</td><td class="text-right">${Fmt.rupiah(bdpAkhir)}</td></tr>
+        <tr style="font-weight:700; background:var(--primary-light);"><td>= HARGA POKOK PRODUKSI (barang selesai)</td><td class="text-right">${Fmt.rupiah(hpProduksi)}</td></tr>
+      `;
+
+      // Verifikasi silang dengan total hasil_produksi
+      const totalHasil = getHasil().reduce((s, h) => s + h.totalHPP, 0);
+      const selisih = Math.abs(hpProduksi - totalHasil);
+      const box = document.getElementById('verifikasi');
+
+      box.innerHTML = selisih < 1
+        ? `<div class="alert alert-success">✓ <div><strong>Cocok!</strong> Hasil formula (${Fmt.rupiah(hpProduksi)}) sama persis dengan total HPP di catatan Hasil Produksi (${Fmt.rupiah(totalHasil)}).</div></div>`
+        : `<div class="alert alert-warning">⚠️ <div>Selisih ${Fmt.rupiah(selisih)} antara formula (${Fmt.rupiah(hpProduksi)}) dan catatan Hasil Produksi (${Fmt.rupiah(totalHasil)}) — kemungkinan ada data yang di-rollback tidak sinkron.</div></div>`;
+    }
+
+    render();
+  </script>
+</body>
+</html>
