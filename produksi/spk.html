@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Surat Perintah Kerja — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span>Produksi</span>
+        <span>/</span>
+        <span class="current">SPK</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📝 Surat Perintah Kerja (SPK)</h1>
+      <p class="subtitle">
+        Perintah produksi: produk apa, berapa unit, dan kapan target selesai.
+        BOM akan otomatis memunculkan <strong>kebutuhan bahan baku</strong>
+        beserta estimasi biaya produksi.
+      </p>
+    </section>
+
+    <!-- ===== CEK PRASYARAT ===== -->
+    <div id="alertPrasyarat"></div>
+
+    <!-- ===== FORM SPK ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Buat SPK Baru</h2>
+
+      <form id="formSPK" autocomplete="off">
+        <input type="hidden" id="spkId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="produkId">
+              Produk yang Diproduksi <span class="required">*</span>
+            </label>
+            <select id="produkId" class="form-select" required>
+              <option value="">— Pilih Produk —</option>
+            </select>
+            <div class="form-hint">Hanya produk yang sudah punya BOM</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="qtyProduksi">
+              Jumlah Produksi <span class="required">*</span>
+            </label>
+            <input type="number" id="qtyProduksi" class="form-control"
+                   value="1" min="1" step="any" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="tglMulai">Tanggal Mulai</label>
+            <input type="date" id="tglMulai" class="form-control" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="tglTarget">Target Selesai</label>
+            <input type="date" id="tglTarget" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="catatan">Catatan Produksi</label>
+          <textarea id="catatan" class="form-control" rows="2"
+                    placeholder="Misal: prioritas pesanan pelanggan PT ABC"></textarea>
+        </div>
+
+        <!-- ===== KEBUTUHAN BAHAN (OTOMATIS dari BOM) ===== -->
+        <div id="panelKebutuhan" class="hidden"
+             style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+          <h3 style="font-size:1rem; font-weight:700; margin-bottom:12px;">
+            🧱 Kebutuhan Bahan Baku (dari BOM)
+          </h3>
+
+          <div class="table-wrapper mb-16">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Kode</th>
+                  <th>Nama Bahan</th>
+                  <th class="text-right" style="width:130px;">Butuh</th>
+                  <th class="text-right" style="width:130px;">Stok Ada</th>
+                  <th class="text-center" style="width:110px;">Status</th>
+                  <th class="text-right" style="width:140px;">Estimasi Biaya</th>
+                </tr>
+              </thead>
+              <tbody id="tabelKebutuhan"></tbody>
+              <tfoot>
+                <tr style="background:var(--primary-light); font-weight:700;">
+                  <td colspan="5" class="text-right">TOTAL ESTIMASI BBB</td>
+                  <td class="text-right" id="totalBBB">Rp 0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Ringkasan Biaya Produksi -->
+          <div class="card" style="background:linear-gradient(135deg,#eff6ff,#dbeafe); border-color:var(--primary);">
+            <h4 style="margin-bottom:12px; color:var(--primary-dark);">
+              💰 Estimasi Biaya Produksi
+            </h4>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; font-size:0.92rem;">
+              <div>
+                <div class="text-muted">Bahan Baku (BBB)</div>
+                <strong id="ringkasBBB">Rp 0</strong>
+              </div>
+              <div>
+                <div class="text-muted">Tenaga Kerja (BTKL)</div>
+                <strong id="ringkasBTKL">Rp 0</strong>
+              </div>
+              <div>
+                <div class="text-muted">Overhead (BOP)</div>
+                <strong id="ringkasBOP">Rp 0</strong>
+              </div>
+              <div style="border-top:2px solid var(--primary); padding-top:8px;">
+                <div class="text-muted">Total Estimasi HPP</div>
+                <strong id="ringkasTotal" style="font-size:1.1rem; color:var(--primary-dark);">Rp 0</strong>
+              </div>
+            </div>
+            <div class="form-hint mt-16">
+              💡 BTKL &amp; BOP di sini hanya <strong>estimasi awal</strong>.
+              Nilai aktual akan diinput di modul Input BTKL dan Input BOP.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            💾 <span id="btnSubmitText">Buat SPK</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== PANEL ALAT BANTU ===== -->
+    <section class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a); border-color:var(--warning);">
+      <h2 class="card-title">🛠️ Alat Bantu</h2>
+      <p class="text-muted mb-16" style="font-size:0.9rem;">
+        Tombol untuk mengisi data contoh atau reset. Tidak perlu buka halaman lain.
+      </p>
+      <div class="flex gap-8" style="flex-wrap:wrap;">
+        <button type="button" class="btn btn-accent" id="btnSeedSemua">
+          🚀 Isi Semua Contoh (Bahan + Produk + BOM + SPK)
+        </button>
+        <button type="button" class="btn btn-primary" id="btnSeedSPK">
+          📥 Isi Contoh SPK Saja
+        </button>
+        <button type="button" class="btn btn-danger" id="btnResetSPK">
+          🗑️ Hapus Semua SPK
+        </button>
+        <button type="button" class="btn btn-danger" id="btnResetAll">
+          ⚠️ Reset SEMUA Data
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== DAFTAR SPK ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Daftar SPK</h2>
+        <div class="flex gap-8">
+          <select id="filterStatus" class="form-select" style="width:auto;">
+            <option value="">Semua Status</option>
+            <option value="Draft">📝 Draft</option>
+            <option value="Berjalan">⚙️ Berjalan</option>
+            <option value="Selesai">✅ Selesai</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:150px;">No. SPK</th>
+              <th>Produk</th>
+              <th class="text-right" style="width:100px;">Qty</th>
+              <th style="width:120px;">Mulai</th>
+              <th style="width:120px;">Target</th>
+              <th class="text-right" style="width:150px;">Estimasi HPP</th>
+              <th class="text-center" style="width:110px;">Status</th>
+              <th class="text-center" style="width:200px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelSPK"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       SPK — Surat Perintah Kerja (versi debug & self-check)
+       ============================================================ */
+
+    const KEY = 'spk';
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getBahan() { return Store.get('bahan_baku', []) || []; }
+    function getBOM() { return Store.get('bom', []) || []; }
+
+    /* ============================================================
+       CEK PRASYARAT
+       ============================================================ */
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      const bahan = getBahan();
+      const produk = getProduk();
+      const bom = getBOM();
+
+      const kurangBahan = bahan.length === 0;
+      const kurangProduk = produk.length === 0;
+      const kurangBOM = bom.length === 0;
+
+      if (!kurangBahan && !kurangProduk && !kurangBOM) {
+        box.innerHTML = '';
+        return;
+      }
+
+      let html = '<div class="alert alert-warning">⚠️ <div>';
+
+      if (kurangBahan && kurangProduk && kurangBOM) {
+        html += '<strong>Data masih KOSONG.</strong><br>';
+        html += 'Klik tombol <strong>🚀 Isi Semua Contoh</strong> di bawah untuk mengisi otomatis.';
+      } else if (kurangBOM) {
+        html += '<strong>Belum ada BOM.</strong><br>';
+        html += 'Buka <a href="../master-data/bom.html">halaman BOM</a> dan klik "🚀 Isi Semua Contoh".';
+      } else if (kurangProduk) {
+        html += '<strong>Belum ada Produk Jadi.</strong><br>';
+        html += 'Buka <a href="../master-data/produk-jadi.html">halaman Produk Jadi</a>.';
+      } else if (kurangBahan) {
+        html += '<strong>Belum ada Bahan Baku.</strong><br>';
+        html += 'Buka <a href="../master-data/bahan-baku.html">halaman Bahan Baku</a>.';
+      }
+
+      html += '</div></div>';
+      box.innerHTML = html;
+    }
+
+    /* ============================================================
+       ISI DROPDOWN PRODUK (hanya yang punya BOM)
+       ============================================================ */
+    function isiDropdownProduk() {
+      const sel = document.getElementById('produkId');
+      const produk = getProduk();
+      const bom = getBOM();
+      const produkIds = new Set(bom.map(b => b.produkId));
+
+      const tersedia = produk.filter(p => produkIds.has(p.id));
+
+      if (tersedia.length === 0) {
+        sel.innerHTML = '<option value="">— Belum ada produk ber-BOM —</option>';
+        return;
+      }
+
+      const currentVal = sel.value;
+      sel.innerHTML = '<option value="">— Pilih Produk —</option>' +
+        tersedia.map(p => `<option value="${p.id}">${esc(p.kode)} — ${esc(p.nama)}</option>`).join('');
+
+      if (currentVal) sel.value = currentVal;
+    }
+
+    /* ============================================================
+       HITUNG KEBUTUHAN BAHAN
+       ============================================================ */
+    function hitungKebutuhan() {
+      const produkId = document.getElementById('produkId').value;
+      const qty = Number(document.getElementById('qtyProduksi').value) || 0;
+      const panel = document.getElementById('panelKebutuhan');
+
+      if (!produkId || qty <= 0) {
+        panel.classList.add('hidden');
+        return;
+      }
+
+      const bom = getBOM().find(b => b.produkId === produkId);
+      if (!bom) {
+        panel.classList.add('hidden');
+        return;
+      }
+
+      const bahan = getBahan();
+      let totalBBB = 0;
+
+      const rows = bom.komponen.map(k => {
+        const b = bahan.find(x => x.id === k.bahanId);
+        if (!b) return '';
+
+        const butuh = Number(k.qty) * qty;
+        const stok = Number(b.stok) || 0;
+        const cukup = stok >= butuh;
+        const biaya = butuh * Number(b.harga);
+        totalBBB += biaya;
+
+        return `
+          <tr>
+            <td><strong>${esc(b.kode)}</strong></td>
+            <td>${esc(b.nama)}</td>
+            <td class="text-right">${Fmt.angka(butuh)} ${esc(b.satuan)}</td>
+            <td class="text-right">${Fmt.angka(stok)} ${esc(b.satuan)}</td>
+            <td class="text-center">
+              ${cukup
+                ? '<span class="badge badge-success">✅ Cukup</span>'
+                : '<span class="badge badge-danger">❌ Kurang</span>'}
+            </td>
+            <td class="text-right">${Fmt.rupiah(biaya)}</td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('tabelKebutuhan').innerHTML = rows || `
+        <tr><td colspan="6" class="table-empty">BOM kosong</td></tr>`;
+
+      // Asumsi sederhana: BTKL = 30% BBB, BOP = 20% BBB
+      const btkl = totalBBB * 0.30;
+      const bop = totalBBB * 0.20;
+      const total = totalBBB + btkl + bop;
+
+      document.getElementById('totalBBB').textContent = Fmt.rupiah(totalBBB);
+      document.getElementById('ringkasBBB').textContent = Fmt.rupiah(totalBBB);
+      document.getElementById('ringkasBTKL').textContent = Fmt.rupiah(btkl);
+      document.getElementById('ringkasBOP').textContent = Fmt.rupiah(bop);
+      document.getElementById('ringkasTotal').textContent = Fmt.rupiah(total);
+
+      panel.classList.remove('hidden');
+    }
+
+    document.getElementById('produkId').addEventListener('change', hitungKebutuhan);
+    document.getElementById('qtyProduksi').addEventListener('input', hitungKebutuhan);
+
+    /* ============================================================
+       GENERATE NOMOR SPK
+       ============================================================ */
+    function generateNoSPK() {
+      const tahun = new Date().getFullYear();
+      const list = getDaftar().filter(s => s.noSPK && s.noSPK.includes(`SPK-${tahun}-`));
+      const max = list.reduce((m, s) => {
+        const match = s.noSPK.match(/(\d+)$/);
+        return match ? Math.max(m, parseInt(match[1])) : m;
+      }, 0);
+      return `SPK-${tahun}-${String(max + 1).padStart(4, '0')}`;
+    }
+
+    /* ============================================================
+       SUBMIT FORM
+       ============================================================ */
+    document.getElementById('formSPK').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const id = document.getElementById('spkId').value;
+      const produkId = document.getElementById('produkId').value;
+      const qtyProduksi = Number(document.getElementById('qtyProduksi').value);
+
+      if (!produkId) { notify('❌ Pilih produk', 'danger'); return; }
+      if (qtyProduksi <= 0) { notify('❌ Qty harus > 0', 'danger'); return; }
+
+      const bom = getBOM().find(b => b.produkId === produkId);
+      if (!bom) { notify('❌ Produk belum punya BOM', 'danger'); return; }
+
+      const bahan = getBahan();
+      const kebutuhan = bom.komponen.map(k => {
+        const b = bahan.find(x => x.id === k.bahanId);
+        const butuh = Number(k.qty) * qtyProduksi;
+        return {
+          bahanId: k.bahanId,
+          kode: b ? b.kode : '',
+          nama: b ? b.nama : '',
+          satuan: b ? b.satuan : '',
+          qty: butuh,
+          harga: b ? Number(b.harga) : 0,
+        };
+      });
+
+      const totalBBB = kebutuhan.reduce((s, k) => s + (k.qty * k.harga), 0);
+      const estBTKL = totalBBB * 0.30;
+      const estBOP = totalBBB * 0.20;
+
+      const list = getDaftar();
+      const existing = id ? list.find(s => s.id === id) : null;
+
+      const data = {
+        id: id || IDGen.generate('SPK'),
+        noSPK: existing ? existing.noSPK : generateNoSPK(),
+        produkId,
+        qtyProduksi,
+        tglMulai: document.getElementById('tglMulai').value || Fmt.today(),
+        tglTarget: document.getElementById('tglTarget').value || '',
+        catatan: document.getElementById('catatan').value.trim(),
+        kebutuhan,
+        estBBB: totalBBB,
+        estBTKL,
+        estBOP,
+        estTotal: totalBBB + estBTKL + estBOP,
+        status: existing ? existing.status : 'Draft',
+        createdAt: existing ? existing.createdAt : new Date().toISOString(),
+      };
+
+      const idx = list.findIndex(s => s.id === data.id);
+      if (idx >= 0) {
+        list[idx] = data;
+        notify('✅ SPK diperbarui', 'success');
+      } else {
+        list.push(data);
+        notify(`✅ SPK ${data.noSPK} berhasil dibuat`, 'success');
+      }
+
+      setDaftar(list);
+      resetForm();
+      renderTabel();
+    });
+
+    /* ============================================================
+       UBAH STATUS
+       ============================================================ */
+    function ubahStatus(id, status) {
+      const list = getDaftar();
+      const item = list.find(s => s.id === id);
+      if (!item) return;
+      item.status = status;
+      setDaftar(list);
+      notify(`📌 Status SPK: ${status}`, 'info');
+      renderTabel();
+    }
+
+    /* ============================================================
+       RENDER TABEL SPK
+       ============================================================ */
+    function renderTabel() {
+      const filter = document.getElementById('filterStatus').value;
+      let list = getDaftar();
+      if (filter) list = list.filter(s => s.status === filter);
+
+      list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+      const produk = getProduk();
+      const tbody = document.getElementById('tabelSPK');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="table-empty">
+              Belum ada SPK. Buat SPK pertama di form atas, atau klik
+              <strong>"🚀 Isi Semua Contoh"</strong>. 📝
+            </td>
+          </tr>`;
+        return;
+      }
+
+      const statusBadge = (s) => {
+        const map = {
+          Draft: 'badge-muted',
+          Berjalan: 'badge-warning',
+          Selesai: 'badge-success',
+        };
+        return `<span class="badge ${map[s] || 'badge-muted'}">${esc(s)}</span>`;
+      };
+
+      tbody.innerHTML = list.map(spk => {
+        const p = produk.find(x => x.id === spk.produkId);
+        if (!p) return '';
+        return `
+          <tr>
+            <td><strong>${esc(spk.noSPK)}</strong></td>
+            <td>${esc(p.kode)} — ${esc(p.nama)}</td>
+            <td class="text-right">${Fmt.angka(spk.qtyProduksi)} ${esc(p.satuan)}</td>
+            <td>${Fmt.tanggal(spk.tglMulai)}</td>
+            <td>${spk.tglTarget ? Fmt.tanggal(spk.tglTarget) : '-'}</td>
+            <td class="text-right">${Fmt.rupiah(spk.estTotal)}</td>
+            <td class="text-center">${statusBadge(spk.status)}</td>
+            <td class="text-center">
+              ${spk.status === 'Draft'
+                ? `<button class="btn btn-sm btn-accent" onclick="ubahStatus('${spk.id}','Berjalan')">▶️</button>`
+                : spk.status === 'Berjalan'
+                  ? `<button class="btn btn-sm btn-primary" onclick="ubahStatus('${spk.id}','Selesai')">✅</button>`
+                  : `<span class="text-muted">—</span>`}
+              <button class="btn btn-sm btn-outline" onclick="editSPK('${spk.id}')">✏️</button>
+              <button class="btn btn-sm btn-danger" onclick="hapusSPK('${spk.id}')">🗑️</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    /* ============================================================
+       EDIT / HAPUS SPK
+       ============================================================ */
+    function editSPK(id) {
+      const spk = getDaftar().find(s => s.id === id);
+      if (!spk) return;
+
+      document.getElementById('spkId').value = spk.id;
+      document.getElementById('produkId').value = spk.produkId;
+      document.getElementById('qtyProduksi').value = spk.qtyProduksi;
+      document.getElementById('tglMulai').value = spk.tglMulai || '';
+      document.getElementById('tglTarget').value = spk.tglTarget || '';
+      document.getElementById('catatan').value = spk.catatan || '';
+
+      document.getElementById('formTitle').textContent = `✏️ Edit SPK ${spk.noSPK}`;
+      document.getElementById('btnSubmitText').textContent = 'Update SPK';
+
+      hitungKebutuhan();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hapusSPK(id) {
+      const spk = getDaftar().find(s => s.id === id);
+      if (!spk) return;
+      if (!confirm(`Yakin hapus SPK ${spk.noSPK}?`)) return;
+
+      setDaftar(getDaftar().filter(s => s.id !== id));
+      notify('🗑️ SPK dihapus', 'warning');
+      renderTabel();
+    }
+
+    function resetForm() {
+      document.getElementById('formSPK').reset();
+      document.getElementById('spkId').value = '';
+      document.getElementById('qtyProduksi').value = 1;
+      document.getElementById('tglMulai').value = Fmt.today();
+      document.getElementById('panelKebutuhan').classList.add('hidden');
+      document.getElementById('formTitle').textContent = '➕ Buat SPK Baru';
+      document.getElementById('btnSubmitText').textContent = 'Buat SPK';
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    document.getElementById('filterStatus').addEventListener('change', renderTabel);
+
+    /* ============================================================
+       SEED DATA CONTOH
+       ============================================================ */
+
+    const CONTOH_BAHAN = [
+      { kode: 'BB-0001', nama: 'Kain Katun Putih', kategori: 'Bahan Utama', satuan: 'meter', harga: 25000, stok: 500, stokMin: 100, supplier: 'PT Kain Nusantara' },
+      { kode: 'BB-0002', nama: 'Kain Katun Hitam', kategori: 'Bahan Utama', satuan: 'meter', harga: 27000, stok: 300, stokMin: 100, supplier: 'PT Kain Nusantara' },
+      { kode: 'BB-0003', nama: 'Benang Jahit Putih', kategori: 'Bahan Pembantu', satuan: 'roll', harga: 15000, stok: 80, stokMin: 20, supplier: 'CV Benang Jaya' },
+      { kode: 'BB-0004', nama: 'Benang Jahit Hitam', kategori: 'Bahan Pembantu', satuan: 'roll', harga: 16000, stok: 15, stokMin: 20, supplier: 'CV Benang Jaya' },
+      { kode: 'BB-0005', nama: 'Kancing Baju 18L', kategori: 'Bahan Pembantu', satuan: 'box', harga: 45000, stok: 25, stokMin: 10, supplier: 'Toko Aksesoris Mode' },
+      { kode: 'BB-0006', nama: 'Resleting 20cm', kategori: 'Bahan Pembantu', satuan: 'pcs', harga: 3500, stok: 200, stokMin: 50, supplier: 'Toko Aksesoris Mode' },
+      { kode: 'BB-0007', nama: 'Label Merek', kategori: 'Bahan Pembantu', satuan: 'pcs', harga: 800, stok: 1000, stokMin: 200, supplier: 'Percetakan Label ID' },
+      { kode: 'BB-0008', nama: 'Plastik Kemasan', kategori: 'Kemasan', satuan: 'pcs', harga: 500, stok: 2000, stokMin: 500, supplier: 'PT Plastik Sejahtera' },
+      { kode: 'BB-0009', nama: 'Kardus Packing', kategori: 'Kemasan', satuan: 'pcs', harga: 3000, stok: 150, stokMin: 100, supplier: 'PT Plastik Sejahtera' },
+      { kode: 'BB-0010', nama: 'Tinta Sablon Hitam', kategori: 'Bahan Pembantu', satuan: 'kg', harga: 85000, stok: 8, stokMin: 5, supplier: 'CV Tinta Warna' },
+    ];
+
+    const CONTOH_PRODUK = [
+      { kode: 'PJ-0001', nama: 'Kemeja Pria Lengan Panjang', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 175000, hargaPokok: 110000, stok: 45, target: 100 },
+      { kode: 'PJ-0002', nama: 'Kemeja Pria Lengan Pendek', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 150000, hargaPokok: 95000, stok: 30, target: 80 },
+      { kode: 'PJ-0003', nama: 'Kaos Polos Katun', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 85000, hargaPokok: 50000, stok: 120, target: 200 },
+      { kode: 'PJ-0004', nama: 'Kaos Sablon Custom', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 110000, hargaPokok: 65000, stok: 60, target: 150 },
+      { kode: 'PJ-0005', nama: 'Kemeja Wanita Slim Fit', kategori: 'Pakaian', satuan: 'pcs', hargaJual: 165000, hargaPokok: 105000, stok: 25, target: 80 },
+    ];
+
+    function seedBahan() {
+      const list = getBahan();
+      const existing = new Set(list.map(b => b.kode));
+      const baru = CONTOH_BAHAN
+        .filter(c => !existing.has(c.kode))
+        .map(c => ({ id: IDGen.generate('BB'), ...c }));
+      if (baru.length) Store.set('bahan_baku', [...list, ...baru]);
+      return baru.length;
+    }
+
+    function seedProduk() {
+      const list = getProduk();
+      const existing = new Set(list.map(p => p.kode));
+      const baru = CONTOH_PRODUK
+        .filter(c => !existing.has(c.kode))
+        .map(c => ({ id: IDGen.generate('PJ'), ...c }));
+      if (baru.length) Store.set('produk_jadi', [...list, ...baru]);
+      return baru.length;
+    }
+
+    function seedBOM(silent = false) {
+      const produk = getProduk();
+      const bahan = getBahan();
+
+      if (produk.length === 0 || bahan.length === 0) {
+        if (!silent) notify('❌ Produk/Bahan masih kosong!', 'danger');
+        return 0;
+      }
+
+      const findProduk = (kode) => produk.find(p => p.kode === kode);
+      const findBahan = (kode) => bahan.find(b => b.kode === kode);
+      const list = getBOM();
+      const existing = new Set(list.map(b => b.produkId));
+      const contoh = [];
+
+      const p1 = findProduk('PJ-0001');
+      if (p1 && !existing.has(p1.id)) {
+        const komp = [
+          { b: findBahan('BB-0001'), qty: 2 },
+          { b: findBahan('BB-0003'), qty: 0.1 },
+          { b: findBahan('BB-0005'), qty: 0.1 },
+          { b: findBahan('BB-0007'), qty: 1 },
+          { b: findBahan('BB-0008'), qty: 1 },
+        ].filter(x => x.b).map(x => ({ bahanId: x.b.id, qty: x.qty }));
+        if (komp.length) contoh.push({
+          produkId: p1.id, outputQty: 1,
+          catatan: 'Resep standar kemeja pria lengan panjang',
+          komponen: komp,
+        });
+      }
+
+      const p3 = findProduk('PJ-0003');
+      if (p3 && !existing.has(p3.id)) {
+        const komp = [
+          { b: findBahan('BB-0002'), qty: 1.5 },
+          { b: findBahan('BB-0003'), qty: 0.05 },
+          { b: findBahan('BB-0007'), qty: 1 },
+          { b: findBahan('BB-0008'), qty: 1 },
+        ].filter(x => x.b).map(x => ({ bahanId: x.b.id, qty: x.qty }));
+        if (komp.length) contoh.push({
+          produkId: p3.id, outputQty: 1,
+          catatan: 'Resep standar kaos polos katun',
+          komponen: komp,
+        });
+      }
+
+      const p5 = findProduk('PJ-0005');
+      if (p5 && !existing.has(p5.id)) {
+        const komp = [
+          { b: findBahan('BB-0001'), qty: 1.5 },
+          { b: findBahan('BB-0003'), qty: 0.1 },
+          { b: findBahan('BB-0005'), qty: 0.08 },
+          { b: findBahan('BB-0007'), qty: 1 },
+          { b: findBahan('BB-0008'), qty: 1 },
+        ].filter(x => x.b).map(x => ({ bahanId: x.b.id, qty: x.qty }));
+        if (komp.length) contoh.push({
+          produkId: p5.id, outputQty: 1,
+          catatan: 'Resep standar kemeja wanita slim fit',
+          komponen: komp,
+        });
+      }
+
+      if (contoh.length === 0) return 0;
+
+      const baru = contoh.map(c => ({ id: IDGen.generate('BOM'), ...c }));
+      Store.set('bom', [...list, ...baru]);
+      return baru.length;
+    }
+
+    // ---- Seed SPK contoh ----
+    function seedSPK(silent = false) {
+      const produk = getProduk();
+      const bom = getBOM();
+      if (produk.length === 0 || bom.length === 0) {
+        if (!silent) notify('❌ Produk/BOM masih kosong!', 'danger');
+        return 0;
+      }
+
+      const list = getDaftar();
+      if (list.length > 0) {
+        if (!silent) notify('ℹ️ SPK sudah ada. Tidak ditambahkan.', 'warning');
+        return 0;
+      }
+
+      const findProduk = (kode) => produk.find(p => p.kode === kode);
+      const findBOM = (produkId) => bom.find(b => b.produkId === produkId);
+      const today = Fmt.today();
+      const tgl7 = new Date(); tgl7.setDate(tgl7.getDate() + 7);
+      const tgl14 = new Date(); tgl14.setDate(tgl14.getDate() + 14);
+
+      const contohSPK = [];
+
+      const p1 = findProduk('PJ-0001');
+      if (p1 && findBOM(p1.id)) {
+        contohSPK.push({ produk: p1, qty: 10, tglTarget: tgl7.toISOString().split('T')[0], catatan: 'Pesanan pelanggan PT ABC' });
+      }
+
+      const p3 = findProduk('PJ-0003');
+      if (p3 && findBOM(p3.id)) {
+        contohSPK.push({ produk: p3, qty: 20, tglTarget: tgl14.toISOString().split('T')[0], catatan: 'Restock kaos polos' });
+      }
+
+      const baru = [];
+      const tahun = new Date().getFullYear();
+
+      contohSPK.forEach((c, i) => {
+        const bomItem = findBOM(c.produk.id);
+        const bahan = getBahan();
+        const kebutuhan = bomItem.komponen.map(k => {
+          const b = bahan.find(x => x.id === k.bahanId);
+          const butuh = Number(k.qty) * c.qty;
+          return {
+            bahanId: k.bahanId,
+            kode: b ? b.kode : '',
+            nama: b ? b.nama : '',
+            satuan: b ? b.satuan : '',
+            qty: butuh,
+            harga: b ? Number(b.harga) : 0,
+          };
+        });
+
+        const totalBBB = kebutuhan.reduce((s, k) => s + (k.qty * k.harga), 0);
+        const estBTKL = totalBBB * 0.30;
+        const estBOP = totalBBB * 0.20;
+
+        baru.push({
+          id: IDGen.generate('SPK'),
+          noSPK: `SPK-${tahun}-${String(i + 1).padStart(4, '0')}`,
+          produkId: c.produk.id,
+          qtyProduksi: c.qty,
+          tglMulai: today,
+          tglTarget: c.tglTarget,
+          catatan: c.catatan,
+          kebutuhan,
+          estBBB: totalBBB,
+          estBTKL,
+          estBOP,
+          estTotal: totalBBB + estBTKL + estBOP,
+          status: 'Draft',
+          createdAt: new Date().toISOString(),
+        });
+      });
+
+      if (baru.length === 0) {
+        if (!silent) notify('❌ Tidak bisa membuat contoh SPK (BOM tidak cocok)', 'danger');
+        return 0;
+      }
+
+      setDaftar([...list, ...baru]);
+      return baru.length;
+    }
+
+    /* ============================================================
+       TOMBOL AKSI
+       ============================================================ */
+    document.getElementById('btnSeedSemua').addEventListener('click', function () {
+      const jmlBahan = seedBahan();
+      const jmlProduk = seedProduk();
+      const jmlBOM = seedBOM(true);
+      const jmlSPK = seedSPK(true);
+
+      isiDropdownProduk();
+      renderTabel();
+      cekPrasyarat();
+
+      if (jmlBahan === 0 && jmlProduk === 0 && jmlBOM === 0 && jmlSPK === 0) {
+        notify('ℹ️ Semua data contoh sudah ada sebelumnya.', 'warning');
+      } else {
+        notify(`✅ Dimuat: ${jmlBahan} bahan, ${jmlProduk} produk, ${jmlBOM} BOM, ${jmlSPK} SPK`, 'success');
+      }
+    });
+
+    document.getElementById('btnSeedSPK').addEventListener('click', function () {
+      const jml = seedSPK(true);
+      renderTabel();
+      cekPrasyarat();
+      if (jml > 0) {
+        notify(`✅ ${jml} SPK contoh dimuat!`, 'success');
+      } else {
+        const b = getBOM().length;
+        if (b === 0) {
+          notify('❌ BOM masih kosong. Klik "🚀 Isi Semua Contoh".', 'danger');
+        } else {
+          notify('ℹ️ SPK sudah ada / tidak ada yang ditambahkan.', 'warning');
+        }
+      }
+    });
+
+    document.getElementById('btnResetSPK').addEventListener('click', function () {
+      if (!confirm('Yakin hapus SEMUA SPK? (Bahan/Produk/BOM tetap ada)')) return;
+      Store.set('spk', []);
+      renderTabel();
+      notify('🗑️ Semua SPK dihapus', 'warning');
+    });
+
+    document.getElementById('btnResetAll').addEventListener('click', function () {
+      if (!confirm('⚠️ Hapus SEMUA data (usaha, akun, bahan, produk, BOM, SPK)?\n\nTidak bisa dibatalkan!')) return;
+      if (!confirm('Yakin? Semua data yang sudah diinput akan hilang.')) return;
+
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('ilham_mfg_'))
+        .forEach(k => localStorage.removeItem(k));
+
+      isiDropdownProduk();
+      renderTabel();
+      cekPrasyarat();
+      notify('🗑️ Semua data direset', 'danger');
+    });
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    isiDropdownProduk();
+    document.getElementById('tglMulai').value = Fmt.today();
+    renderTabel();
+    cekPrasyarat();
+  </script>
+</body>
+</html>

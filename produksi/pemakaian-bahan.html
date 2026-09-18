@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pemakaian Bahan — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span>Produksi</span>
+        <span>/</span>
+        <span class="current">Pemakaian Bahan</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>🧱 Pemakaian Bahan Baku</h1>
+      <p class="subtitle">
+        Catat bahan baku <strong>aktual</strong> yang dipakai produksi.
+        Stok bahan otomatis berkurang, dan nilainya masuk ke
+        <strong>Barang Dalam Proses (BDP)</strong>.
+      </p>
+    </section>
+
+    <!-- ===== CEK PRASYARAT ===== -->
+    <div id="alertPrasyarat"></div>
+
+    <!-- ===== FORM PEMAKAIAN ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Catat Pemakaian Bahan</h2>
+
+      <form id="formPakai" autocomplete="off">
+        <input type="hidden" id="pakaiId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="spkId">
+              Pilih SPK <span class="required">*</span>
+            </label>
+            <select id="spkId" class="form-select" required>
+              <option value="">— Pilih SPK —</option>
+            </select>
+            <div class="form-hint">Hanya SPK berstatus "Berjalan"</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="tglPakai">Tanggal Pemakaian</label>
+            <input type="date" id="tglPakai" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="catatan">Catatan</label>
+          <input type="text" id="catatan" class="form-control"
+                 placeholder="Misal: pemakaian gelombang 1" />
+        </div>
+
+        <!-- ===== TABEL KEBUTUHAN & AKTUAL ===== -->
+        <div id="panelPakai" class="hidden"
+             style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+
+          <h3 style="font-size:1rem; font-weight:700; margin-bottom:12px;">
+            🧾 Bahan Baku — Rencana vs Aktual
+          </h3>
+
+          <div class="table-wrapper mb-16">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Bahan</th>
+                  <th class="text-right" style="width:120px;">Rencana</th>
+                  <th class="text-right" style="width:120px;">Stok Ada</th>
+                  <th style="width:150px;">Aktual (Input)</th>
+                  <th class="text-center" style="width:120px;">Selisih</th>
+                  <th class="text-right" style="width:140px;">Biaya</th>
+                </tr>
+              </thead>
+              <tbody id="tabelPakai"></tbody>
+              <tfoot>
+                <tr style="background:var(--primary-light); font-weight:700;">
+                  <td colspan="5" class="text-right">TOTAL NILAI PEMAKAIAN (BBB)</td>
+                  <td class="text-right" id="totalPakai">Rp 0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Ringkasan -->
+          <div class="card" style="background:linear-gradient(135deg,#eff6ff,#dbeafe); border-color:var(--primary);">
+            <h4 style="margin-bottom:12px; color:var(--primary-dark);">
+              📌 Efek Pemakaian
+            </h4>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; font-size:0.92rem;">
+              <div>
+                <div class="text-muted">Total Nilai Pemakaian</div>
+                <strong id="efekTotal">Rp 0</strong>
+              </div>
+              <div>
+                <div class="text-muted">Total Selisih vs Rencana</div>
+                <strong id="efekSelisih">Rp 0</strong>
+              </div>
+              <div>
+                <div class="text-muted">Jumlah Item</div>
+                <strong id="efekItem">0 item</strong>
+              </div>
+            </div>
+            <div class="form-hint mt-16">
+              💡 Saat disimpan:<br>
+              • <strong>Stok bahan baku</strong> berkurang sesuai qty aktual<br>
+              • <strong>BDP (Barang Dalam Proses)</strong> bertambah senilai total di atas<br>
+              • <strong>Jurnal otomatis</strong>: BDP (Dr) / Persediaan Bahan Baku (Cr)
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            💾 <span id="btnSubmitText">Simpan Pemakaian</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== PANEL ALAT BANTU ===== -->
+    <section class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a); border-color:var(--warning);">
+      <h2 class="card-title">🛠️ Alat Bantu</h2>
+      <p class="text-muted mb-16" style="font-size:0.9rem;">
+        Isi contoh atau reset. Untuk mengisi contoh pemakaian, dibutuhkan SPK berstatus "Berjalan".
+      </p>
+      <div class="flex gap-8" style="flex-wrap:wrap;">
+        <button type="button" class="btn btn-accent" id="btnMulaiSemuaSPK">
+          ▶️ Ubah Semua SPK Draft → Berjalan
+        </button>
+        <button type="button" class="btn btn-primary" id="btnSeedPakai">
+          📥 Isi Contoh Pemakaian (SPK #1)
+        </button>
+        <button type="button" class="btn btn-danger" id="btnResetPakai">
+          🗑️ Hapus Semua Pemakaian (Rollback Stok)
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== DAFTAR PEMAKAIAN ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Riwayat Pemakaian</h2>
+        <span class="badge badge-primary" id="totalRiwayat">0 pemakaian</span>
+      </div>
+
+      <div id="daftarPakai"></div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       PEMAKAIAN BAHAN — versi lengkap
+       ============================================================ */
+
+    const KEY = 'pemakaian_bahan';
+    let baris = []; // baris aktual yang sedang diinput
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+    function getBahan() { return Store.get('bahan_baku', []) || []; }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getSPK() { return Store.get('spk', []) || []; }
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+
+    /* ============================================================
+       CEK PRASYARAT
+       ============================================================ */
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      const spk = getSPK();
+      const spkBerjalan = spk.filter(s => s.status === 'Berjalan');
+
+      if (spk.length === 0) {
+        box.innerHTML = `
+          <div class="alert alert-warning">
+            ⚠️ <div>
+              <strong>Belum ada SPK.</strong><br>
+              Buat SPK dulu di <a href="spk.html">halaman SPK</a>,
+              lalu ubah statusnya jadi <strong>"Berjalan"</strong>.
+            </div>
+          </div>`;
+        return;
+      }
+
+      if (spkBerjalan.length === 0) {
+        box.innerHTML = `
+          <div class="alert alert-warning">
+            ⚠️ <div>
+              <strong>Tidak ada SPK berstatus "Berjalan".</strong><br>
+              Buka <a href="spk.html">halaman SPK</a>, klik tombol ▶️ untuk memulai produksi.
+              Atau klik <strong>"▶️ Ubah Semua SPK Draft → Berjalan"</strong> di bawah.
+            </div>
+          </div>`;
+        return;
+      }
+
+      box.innerHTML = '';
+    }
+
+    /* ============================================================
+       DROPDOWN SPK (Berjalan & belum ada pemakaian)
+       ============================================================ */
+    function isiDropdownSPK() {
+      const sel = document.getElementById('spkId');
+      const spk = getSPK();
+      const pakai = getDaftar();
+      const sudahAda = new Set(pakai.map(p => p.spkId));
+
+      const tersedia = spk.filter(s =>
+        s.status === 'Berjalan' && !sudahAda.has(s.id)
+      );
+
+      if (tersedia.length === 0) {
+        sel.innerHTML = '<option value="">— Tidak ada SPK tersedia —</option>';
+        return;
+      }
+
+      const currentVal = sel.value;
+      sel.innerHTML = '<option value="">— Pilih SPK —</option>' +
+        tersedia.map(s => {
+          const p = getProduk().find(x => x.id === s.produkId);
+          const nama = p ? p.nama : '?';
+          return `<option value="${s.id}">${esc(s.noSPK)} — ${esc(nama)} (${Fmt.angka(s.qtyProduksi)})</option>`;
+        }).join('');
+
+      if (currentVal) sel.value = currentVal;
+    }
+
+    /* ============================================================
+       LOAD KEBUTUHAN DARI SPK
+       ============================================================ */
+    function loadKebutuhan() {
+      const spkId = document.getElementById('spkId').value;
+      const panel = document.getElementById('panelPakai');
+
+      if (!spkId) {
+        panel.classList.add('hidden');
+        baris = [];
+        return;
+      }
+
+      const spk = getSPK().find(s => s.id === spkId);
+      if (!spk) { panel.classList.add('hidden'); return; }
+
+      // Inisialisasi baris: qty aktual = qty rencana
+      baris = spk.kebutuhan.map(k => ({
+        bahanId: k.bahanId,
+        kode: k.kode,
+        nama: k.nama,
+        satuan: k.satuan,
+        qtyRencana: Number(k.qty),
+        qtyAktual: Number(k.qty),
+        harga: Number(k.harga),
+      }));
+
+      renderBaris();
+      panel.classList.remove('hidden');
+    }
+
+    document.getElementById('spkId').addEventListener('change', loadKebutuhan);
+
+    /* ============================================================
+       RENDER TABEL BARIS
+       ============================================================ */
+    function renderBaris() {
+      const tbody = document.getElementById('tabelPakai');
+      const bahan = getBahan();
+
+      if (baris.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">SPK tidak punya kebutuhan bahan</td></tr>`;
+        document.getElementById('totalPakai').textContent = 'Rp 0';
+        return;
+      }
+
+      let total = 0;
+      let totalSelisihNilai = 0;
+
+      tbody.innerHTML = baris.map((b, i) => {
+        const bahanData = bahan.find(x => x.id === b.bahanId);
+        const stok = bahanData ? Number(bahanData.stok) : 0;
+        const biaya = b.qtyAktual * b.harga;
+        total += biaya;
+
+        const selisih = b.qtyAktual - b.qtyRencana;
+        const selisihNilai = selisih * b.harga;
+        totalSelisihNilai += selisihNilai;
+
+        // Badge selisih
+        let badgeSelisih = '';
+        if (Math.abs(selisih) < 0.0001) {
+          badgeSelisih = '<span class="badge badge-success">= Persis</span>';
+        } else if (selisih > 0) {
+          badgeSelisih = `<span class="badge badge-danger">+${Fmt.angka(selisih.toFixed(2))}</span>`;
+        } else {
+          badgeSelisih = `<span class="badge badge-warning">${Fmt.angka(selisih.toFixed(2))}</span>`;
+        }
+
+        // Warning kalau qty > stok
+        const lebihStok = b.qtyAktual > stok;
+        const warningStok = lebihStok
+          ? `<div class="form-hint" style="color:var(--danger);">⚠️ Melebihi stok (${Fmt.angka(stok)})</div>`
+          : '';
+
+        return `
+          <tr>
+            <td>
+              <strong>${esc(b.kode)}</strong> — ${esc(b.nama)}
+              <div class="form-hint">Stok: ${Fmt.angka(stok)} ${esc(b.satuan)}</div>
+            </td>
+            <td class="text-right">${Fmt.angka(b.qtyRencana)} ${esc(b.satuan)}</td>
+            <td class="text-right">${Fmt.angka(stok)} ${esc(b.satuan)}</td>
+            <td>
+              <input type="number" class="form-control" min="0" step="any"
+                     value="${b.qtyAktual}"
+                     onchange="ubahQty(${i}, this.value)" />
+              ${warningStok}
+            </td>
+            <td class="text-center">${badgeSelisih}</td>
+            <td class="text-right"><strong>${Fmt.rupiah(biaya)}</strong></td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('totalPakai').textContent = Fmt.rupiah(total);
+      document.getElementById('efekTotal').textContent = Fmt.rupiah(total);
+      document.getElementById('efekItem').textContent = `${baris.length} item`;
+
+      const elSelisih = document.getElementById('efekSelisih');
+      const ttd = totalSelisihNilai > 0 ? '+' : '';
+      elSelisih.textContent = ttd + Fmt.rupiah(totalSelisihNilai);
+      elSelisih.style.color = totalSelisihNilai > 0
+        ? 'var(--danger)'
+        : totalSelisihNilai < 0
+          ? 'var(--success)'
+          : 'inherit';
+    }
+
+    function ubahQty(i, val) {
+      baris[i].qtyAktual = Number(val) || 0;
+      renderBaris();
+    }
+
+    /* ============================================================
+       SUBMIT PEMAKAIAN
+       ============================================================ */
+    document.getElementById('formPakai').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const spkId = document.getElementById('spkId').value;
+      if (!spkId) { notify('❌ Pilih SPK dulu', 'danger'); return; }
+      if (baris.length === 0) { notify('❌ Tidak ada bahan', 'danger'); return; }
+
+      const spk = getSPK().find(s => s.id === spkId);
+      if (!spk) { notify('❌ SPK tidak ditemukan', 'danger'); return; }
+
+      // Cek stok
+      const bahan = getBahan();
+      const kurang = baris.filter(b => {
+        const bd = bahan.find(x => x.id === b.bahanId);
+        return !bd || b.qtyAktual > Number(bd.stok);
+      });
+
+      if (kurang.length > 0) {
+        const nama = kurang.map(k => k.nama).join(', ');
+        notify(`❌ Stok tidak cukup: ${nama}`, 'danger');
+        return;
+      }
+
+      // Cek qty > 0
+      if (baris.some(b => b.qtyAktual <= 0)) {
+        notify('❌ Semua qty harus > 0', 'danger');
+        return;
+      }
+
+      const totalNilai = baris.reduce((s, b) => s + (b.qtyAktual * b.harga), 0);
+
+      // ====== 1. SIMPAN PEMAKAIAN ======
+      const pakaiList = getDaftar();
+      const dataPakai = {
+        id: IDGen.generate('PAKAI'),
+        spkId,
+        noSPK: spk.noSPK,
+        tglPakai: document.getElementById('tglPakai').value || Fmt.today(),
+        catatan: document.getElementById('catatan').value.trim(),
+        items: baris.map(b => ({
+          bahanId: b.bahanId,
+          kode: b.kode,
+          nama: b.nama,
+          satuan: b.satuan,
+          qtyRencana: b.qtyRencana,
+          qtyAktual: b.qtyAktual,
+          harga: b.harga,
+          subtotal: b.qtyAktual * b.harga,
+        })),
+        totalNilai,
+        createdAt: new Date().toISOString(),
+      };
+      pakaiList.push(dataPakai);
+      setDaftar(pakaiList);
+
+      // ====== 2. KURANGI STOK BAHAN ======
+      const bahanList = getBahan();
+      baris.forEach(b => {
+        const idx = bahanList.findIndex(x => x.id === b.bahanId);
+        if (idx >= 0) {
+          bahanList[idx].stok = Number(bahanList[idx].stok) - b.qtyAktual;
+        }
+      });
+      Store.set('bahan_baku', bahanList);
+
+      // ====== 3. BUAT JURNAL OTOMATIS ======
+      const coa = Store.get('chart_of_accounts', []) || [];
+      const akunBDP = coa.find(a => a.kategori === 'BDP');
+      const akunBB = coa.find(a => a.kategori === 'Bahan Baku');
+
+      if (akunBDP && akunBB && totalNilai > 0) {
+        const jurnalList = getJurnal();
+        jurnalList.push({
+          id: IDGen.generate('JRN'),
+          tanggal: dataPakai.tglPakai,
+          ref: dataPakai.noSPK,
+          keterangan: `Pemakaian bahan untuk ${dataPakai.noSPK}`,
+          source: 'pemakaian_bahan',
+          sourceId: dataPakai.id,
+          detail: [
+            { kode: akunBDP.kode, nama: akunBDP.nama, debit: totalNilai, kredit: 0 },
+            { kode: akunBB.kode, nama: akunBB.nama, debit: 0, kredit: totalNilai },
+          ],
+          createdAt: new Date().toISOString(),
+        });
+        Store.set('jurnal', jurnalList);
+      }
+
+      notify(`✅ Pemakaian disimpan — stok berkurang ${Fmt.rupiah(totalNilai)}`, 'success');
+      resetForm();
+      renderRiwayat();
+      isiDropdownSPK();
+      cekPrasyarat();
+    });
+
+    /* ============================================================
+       RIWAYAT PEMAKAIAN
+       ============================================================ */
+    function renderRiwayat() {
+      const list = getDaftar();
+      const container = document.getElementById('daftarPakai');
+      document.getElementById('totalRiwayat').textContent = `${list.length} pemakaian`;
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="alert alert-info">
+            Belum ada pemakaian bahan. Pilih SPK di form atas untuk mencatat.
+          </div>`;
+        return;
+      }
+
+      list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+      container.innerHTML = list.map(p => {
+        const itemsHTML = p.items.map(it => `
+          <tr>
+            <td>${esc(it.kode)} — ${esc(it.nama)}</td>
+            <td class="text-right">${Fmt.angka(it.qtyRencana)} ${esc(it.satuan)}</td>
+            <td class="text-right">
+              <strong>${Fmt.angka(it.qtyAktual)}</strong> ${esc(it.satuan)}
+              ${it.qtyAktual > it.qtyRencana
+                ? ` <span class="badge badge-danger">+${Fmt.angka((it.qtyAktual-it.qtyRencana).toFixed(2))}</span>`
+                : it.qtyAktual < it.qtyRencana
+                  ? ` <span class="badge badge-warning">−${Fmt.angka((it.qtyRencana-it.qtyAktual).toFixed(2))}</span>`
+                  : ''}
+            </td>
+            <td class="text-right">${Fmt.rupiah(it.subtotal)}</td>
+          </tr>
+        `).join('');
+
+        return `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="flex-between mb-16">
+              <div>
+                <h3 style="color:var(--primary); margin-bottom:4px;">
+                  📦 ${esc(p.noSPK)}
+                </h3>
+                <div class="text-muted" style="font-size:0.88rem;">
+                  Tanggal: <strong>${Fmt.tanggal(p.tglPakai)}</strong>
+                  ${p.catatan ? ` | ${esc(p.catatan)}` : ''}
+                  | Total: <strong>${Fmt.rupiah(p.totalNilai)}</strong>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-danger" onclick="rollbackPakai('${p.id}')">
+                ↩️ Rollback
+              </button>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Bahan</th>
+                    <th class="text-right" style="width:130px;">Rencana</th>
+                    <th class="text-right" style="width:170px;">Aktual</th>
+                    <th class="text-right" style="width:150px;">Biaya</th>
+                  </tr>
+                </thead>
+                <tbody>${itemsHTML}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+        /* ============================================================
+       ROLLBACK PEMAKAIAN
+       ============================================================ */
+    function rollbackPakai(id) {
+      const p = getDaftar().find(x => x.id === id);
+      if (!p) return;
+      if (!confirm(`Rollback pemakaian ${p.noSPK}?\n\nStok bahan akan dikembalikan.`)) return;
+
+      // Kembalikan stok
+      const bahanList = getBahan();
+      p.items.forEach(it => {
+        const idx = bahanList.findIndex(x => x.id === it.bahanId);
+        if (idx >= 0) {
+          bahanList[idx].stok = Number(bahanList[idx].stok) + it.qtyAktual;
+        }
+      });
+      Store.set('bahan_baku', bahanList);
+
+      // Hapus jurnal terkait
+      const jurnalList = getJurnal().filter(j => j.sourceId !== id);
+      Store.set('jurnal', jurnalList);
+
+      // Hapus pemakaian
+      setDaftar(getDaftar().filter(x => x.id !== id));
+
+      notify('↩️ Pemakaian di-rollback, stok dikembalikan', 'warning');
+      renderRiwayat();
+      isiDropdownSPK();
+      cekPrasyarat();
+    }
+
+    /* ============================================================
+       RESET FORM
+       ============================================================ */
+    function resetForm() {
+      document.getElementById('formPakai').reset();
+      document.getElementById('pakaiId').value = '';
+      document.getElementById('tglPakai').value = Fmt.today();
+      document.getElementById('panelPakai').classList.add('hidden');
+      document.getElementById('formTitle').textContent = '➕ Catat Pemakaian Bahan';
+      document.getElementById('btnSubmitText').textContent = 'Simpan Pemakaian';
+      baris = [];
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    /* ============================================================
+       ALAT BANTU
+       ============================================================ */
+
+    // Ubah semua SPK Draft → Berjalan
+    document.getElementById('btnMulaiSemuaSPK').addEventListener('click', function () {
+      const spk = getSPK();
+      let jml = 0;
+      spk.forEach(s => {
+        if (s.status === 'Draft') { s.status = 'Berjalan'; jml++; }
+      });
+      Store.set('spk', spk);
+      if (jml > 0) {
+        notify(`✅ ${jml} SPK diubah ke "Berjalan"`, 'success');
+      } else {
+        notify('ℹ️ Tidak ada SPK Draft', 'warning');
+      }
+      isiDropdownSPK();
+      cekPrasyarat();
+    });
+
+    // Seed pemakaian untuk SPK pertama yang berjalan
+    document.getElementById('btnSeedPakai').addEventListener('click', function () {
+      const spk = getSPK().filter(s => s.status === 'Berjalan');
+      if (spk.length === 0) {
+        notify('❌ Tidak ada SPK Berjalan. Klik ▶️ dulu.', 'danger');
+        return;
+      }
+
+      // Ambil SPK terbaru yang belum ada pemakaiannya
+      const pakai = getDaftar();
+      const sudahAda = new Set(pakai.map(p => p.spkId));
+      const target = spk.find(s => !sudahAda.has(s.id));
+
+      if (!target) {
+        notify('ℹ️ Semua SPK Berjalan sudah punya pemakaian.', 'warning');
+        return;
+      }
+
+      // Set dropdown
+      document.getElementById('spkId').value = target.id;
+      loadKebutuhan();
+
+      notify(`✅ SPK ${target.noSPK} siap dicatat. Qty aktual = rencana. Klik "Simpan Pemakaian".`, 'info');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Reset semua pemakaian (dengan rollback stok)
+    document.getElementById('btnResetPakai').addEventListener('click', function () {
+      const list = getDaftar();
+      if (list.length === 0) {
+        notify('ℹ️ Tidak ada pemakaian untuk dihapus.', 'warning');
+        return;
+      }
+      if (!confirm(`Yakin hapus SEMUA pemakaian (${list.length} item)?\nStok bahan akan dikembalikan.`)) return;
+
+      // Rollback semua stok
+      const bahanList = getBahan();
+      list.forEach(p => {
+        p.items.forEach(it => {
+          const idx = bahanList.findIndex(x => x.id === it.bahanId);
+          if (idx >= 0) bahanList[idx].stok = Number(bahanList[idx].stok) + it.qtyAktual;
+        });
+      });
+      Store.set('bahan_baku', bahanList);
+
+      // Hapus jurnal terkait
+      const jurnalList = getJurnal().filter(j => j.source !== 'pemakaian_bahan');
+      Store.set('jurnal', jurnalList);
+
+      setDaftar([]);
+      notify('🗑️ Semua pemakaian dihapus, stok dikembalikan', 'warning');
+      renderRiwayat();
+      isiDropdownSPK();
+      cekPrasyarat();
+    });
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    isiDropdownSPK();
+    document.getElementById('tglPakai').value = Fmt.today();
+    renderRiwayat();
+    cekPrasyarat();
+  </script>
+</body>
+</html>

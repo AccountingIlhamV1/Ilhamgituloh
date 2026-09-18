@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Permintaan Bahan — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Produksi</a>
+        <span>/</span>
+        <span class="current">Permintaan Bahan</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>📤 Permintaan Bahan</h1>
+      <p class="subtitle">
+        Surat permintaan bahan baku dari gudang ke lantai produksi,
+        sesuai kebutuhan BOM tiap SPK. Halaman ini <strong>tidak</strong>
+        mengurangi stok atau membuat jurnal — pengurangan stok riil
+        tetap dicatat di <a href="pemakaian-bahan.html">Pemakaian Bahan</a>.
+      </p>
+    </section>
+
+    <!-- ===== CEK PRASYARAT ===== -->
+    <div id="alertPrasyarat"></div>
+
+    <!-- ===== FORM ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Buat Permintaan Bahan</h2>
+
+      <form id="formMinta" autocomplete="off">
+        <input type="hidden" id="mintaId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="spkId">Pilih SPK <span class="required">*</span></label>
+            <select id="spkId" class="form-select" required>
+              <option value="">— Pilih SPK —</option>
+            </select>
+            <div class="form-hint">SPK berstatus "Draft" atau "Berjalan"</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="tglMinta">Tanggal Permintaan</label>
+            <input type="date" id="tglMinta" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="catatan">Catatan</label>
+          <input type="text" id="catatan" class="form-control" placeholder="Misal: diambil oleh bagian gudang" />
+        </div>
+
+        <div id="panelMinta" class="hidden" style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+
+          <h3 style="font-size:1rem; font-weight:700; margin-bottom:12px;">
+            🧾 Bahan Baku Sesuai BOM
+          </h3>
+
+          <div class="table-wrapper mb-16">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Bahan</th>
+                  <th class="text-right" style="width:120px;">Kebutuhan BOM</th>
+                  <th class="text-right" style="width:120px;">Stok Gudang</th>
+                  <th style="width:150px;">Qty Diminta</th>
+                </tr>
+              </thead>
+              <tbody id="tabelMinta"></tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-info">
+            💡 Surat ini hanya menandai bahan <strong>sudah ditarik dari gudang</strong>
+            ke lantai produksi. Nilai uangnya baru dicatat saat kamu input
+            <strong>Pemakaian Bahan</strong> yang sesungguhnya nanti.
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 <span id="btnSubmitText">Simpan Permintaan</span></button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== DAFTAR ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Riwayat Permintaan Bahan</h2>
+        <span class="badge badge-primary" id="totalRiwayat">0 permintaan</span>
+      </div>
+
+      <div id="daftarMinta"></div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       PERMINTAAN BAHAN — pull list (tanpa efek stok/jurnal)
+       ============================================================ */
+
+    const KEY = 'permintaan_bahan';
+    let baris = [];
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+    function getBahan() { return Store.get('bahan_baku', []) || []; }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getSPK() { return Store.get('spk', []) || []; }
+
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      const spk = getSPK().filter(s => s.status !== 'Selesai');
+
+      if (spk.length === 0) {
+        box.innerHTML = `
+          <div class="alert alert-warning">
+            ⚠️ <div>
+              <strong>Belum ada SPK aktif.</strong> Buat dulu di
+              <a href="spk.html">halaman SPK</a>.
+            </div>
+          </div>`;
+        return;
+      }
+      box.innerHTML = '';
+    }
+
+    function isiDropdownSPK() {
+      const sel = document.getElementById('spkId');
+      const spk = getSPK().filter(s => s.status !== 'Selesai');
+      const minta = getDaftar();
+      const sudahAda = new Set(minta.map(m => m.spkId));
+
+      const tersedia = spk.filter(s => !sudahAda.has(s.id));
+
+      if (tersedia.length === 0) {
+        sel.innerHTML = '<option value="">— Tidak ada SPK tersedia —</option>';
+        return;
+      }
+
+      const currentVal = sel.value;
+      sel.innerHTML = '<option value="">— Pilih SPK —</option>' +
+        tersedia.map(s => {
+          const p = getProduk().find(x => x.id === s.produkId);
+          const nama = p ? p.nama : '?';
+          return `<option value="${s.id}">${esc(s.noSPK)} — ${esc(nama)} (${Fmt.angka(s.qtyProduksi)}) [${esc(s.status)}]</option>`;
+        }).join('');
+
+      if (currentVal) sel.value = currentVal;
+    }
+
+    function loadKebutuhan() {
+      const spkId = document.getElementById('spkId').value;
+      const panel = document.getElementById('panelMinta');
+
+      if (!spkId) { panel.classList.add('hidden'); baris = []; return; }
+
+      const spk = getSPK().find(s => s.id === spkId);
+      if (!spk) { panel.classList.add('hidden'); return; }
+
+      baris = (spk.kebutuhan || []).map(k => ({
+        bahanId: k.bahanId,
+        kode: k.kode,
+        nama: k.nama,
+        satuan: k.satuan,
+        qtyRencana: Number(k.qty),
+        qtyDiminta: Number(k.qty),
+      }));
+
+      renderBaris();
+      panel.classList.remove('hidden');
+    }
+    document.getElementById('spkId').addEventListener('change', loadKebutuhan);
+
+    function renderBaris() {
+      const tbody = document.getElementById('tabelMinta');
+      const bahan = getBahan();
+
+      if (baris.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="table-empty">SPK tidak punya kebutuhan bahan (BOM kosong)</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = baris.map((b, i) => {
+        const bd = bahan.find(x => x.id === b.bahanId);
+        const stok = bd ? Number(bd.stok) : 0;
+        const kurang = b.qtyDiminta > stok;
+
+        return `
+          <tr>
+            <td><strong>${esc(b.kode)}</strong> — ${esc(b.nama)}</td>
+            <td class="text-right">${Fmt.angka(b.qtyRencana)} ${esc(b.satuan)}</td>
+            <td class="text-right">${Fmt.angka(stok)} ${esc(b.satuan)}</td>
+            <td>
+              <input type="number" class="form-control" min="0" step="any"
+                     value="${b.qtyDiminta}" onchange="ubahQty(${i}, this.value)" />
+              ${kurang ? `<div class="form-hint" style="color:var(--danger);">⚠️ Stok gudang kurang</div>` : ''}
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function ubahQty(i, val) {
+      baris[i].qtyDiminta = Number(val) || 0;
+      renderBaris();
+    }
+
+    document.getElementById('formMinta').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const spkId = document.getElementById('spkId').value;
+      if (!spkId) { notify('❌ Pilih SPK dulu', 'danger'); return; }
+      if (baris.length === 0) { notify('❌ SPK tidak punya kebutuhan bahan', 'danger'); return; }
+
+      const spk = getSPK().find(s => s.id === spkId);
+      if (!spk) { notify('❌ SPK tidak ditemukan', 'danger'); return; }
+
+      const list = getDaftar();
+      const data = {
+        id: IDGen.generate('MINTA'),
+        spkId,
+        noSPK: spk.noSPK,
+        tglMinta: document.getElementById('tglMinta').value || Fmt.today(),
+        catatan: document.getElementById('catatan').value.trim(),
+        items: baris.map(b => ({ ...b })),
+        createdAt: new Date().toISOString(),
+      };
+
+      list.push(data);
+      setDaftar(list);
+
+      notify(`✅ Permintaan bahan untuk ${data.noSPK} tercatat`, 'success');
+      resetForm();
+      renderRiwayat();
+      isiDropdownSPK();
+      cekPrasyarat();
+    });
+
+    function renderRiwayat() {
+      const list = getDaftar().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const container = document.getElementById('daftarMinta');
+      document.getElementById('totalRiwayat').textContent = `${list.length} permintaan`;
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="alert alert-info">Belum ada permintaan bahan.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(m => {
+        const itemsHTML = m.items.map(it => `
+          <tr>
+            <td>${esc(it.kode)} — ${esc(it.nama)}</td>
+            <td class="text-right">${Fmt.angka(it.qtyRencana)} ${esc(it.satuan)}</td>
+            <td class="text-right"><strong>${Fmt.angka(it.qtyDiminta)}</strong> ${esc(it.satuan)}</td>
+          </tr>
+        `).join('');
+
+        return `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="flex-between mb-16">
+              <div>
+                <h3 style="color:var(--primary); margin-bottom:4px;">📤 ${esc(m.noSPK)}</h3>
+                <div class="text-muted" style="font-size:0.88rem;">
+                  Tanggal: <strong>${Fmt.tanggal(m.tglMinta)}</strong>
+                  ${m.catatan ? ` | ${esc(m.catatan)}` : ''}
+                  | <span class="badge badge-success">✅ Sudah diambil dari gudang</span>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-danger" onclick="hapusMinta('${m.id}')">🗑️ Hapus</button>
+            </div>
+            <div class="table-wrapper">
+              <table class="table">
+                <thead><tr><th>Bahan</th><th class="text-right" style="width:130px;">Rencana</th><th class="text-right" style="width:130px;">Diminta</th></tr></thead>
+                <tbody>${itemsHTML}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function hapusMinta(id) {
+      const m = getDaftar().find(x => x.id === id);
+      if (!m) return;
+      if (!confirm(`Hapus permintaan bahan ${m.noSPK}?\n\n(Catatan ini murni dokumen, tidak ada stok/jurnal yang berubah)`)) return;
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('🗑️ Permintaan bahan dihapus', 'warning');
+      renderRiwayat();
+      isiDropdownSPK();
+      cekPrasyarat();
+    }
+
+    function resetForm() {
+      document.getElementById('formMinta').reset();
+      document.getElementById('mintaId').value = '';
+      document.getElementById('tglMinta').value = Fmt.today();
+      document.getElementById('panelMinta').classList.add('hidden');
+      baris = [];
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    isiDropdownSPK();
+    document.getElementById('tglMinta').value = Fmt.today();
+    renderRiwayat();
+    cekPrasyarat();
+  </script>
+</body>
+</html>

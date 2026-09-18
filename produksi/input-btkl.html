@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Input BTKL — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <span>Produksi</span>
+        <span>/</span>
+        <span class="current">Input BTKL</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>👷 Input BTKL</h1>
+      <p class="subtitle">
+        Catat <strong>Biaya Tenaga Kerja Langsung</strong> (BTKL) per SPK.
+        Nilai BTKL akan masuk ke <strong>Barang Dalam Proses (BDP)</strong>
+        dan otomatis membuat jurnal.
+      </p>
+    </section>
+
+    <!-- ===== CEK PRASYARAT ===== -->
+    <div id="alertPrasyarat"></div>
+
+    <!-- ===== FORM BTKL ===== -->
+    <section class="card">
+      <h2 class="card-title" id="formTitle">➕ Catat BTKL</h2>
+
+      <form id="formBTKL" autocomplete="off">
+        <input type="hidden" id="btklId" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="spkId">
+              Pilih SPK <span class="required">*</span>
+            </label>
+            <select id="spkId" class="form-select" required>
+              <option value="">— Pilih SPK —</option>
+            </select>
+            <div class="form-hint">Hanya SPK berstatus "Berjalan"</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="tglBTKL">Tanggal</label>
+            <input type="date" id="tglBTKL" class="form-control" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="catatan">Catatan</label>
+          <input type="text" id="catatan" class="form-control"
+                 placeholder="Misal: kerja shift 1, lembur 2 jam" />
+        </div>
+
+        <!-- ===== TABEL KARYAWAN ===== -->
+        <div id="panelBTKL" class="hidden"
+             style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+
+          <div class="flex-between mb-16">
+            <h3 style="font-size:1rem; font-weight:700;">👥 Daftar Karyawan</h3>
+            <button type="button" class="btn btn-sm btn-accent" id="btnTambahBaris">
+              ➕ Tambah Karyawan
+            </button>
+          </div>
+
+          <div class="table-wrapper mb-16">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nama Karyawan</th>
+                  <th style="width:120px;">Jam Kerja</th>
+                  <th style="width:160px;">Tarif / Jam</th>
+                  <th style="width:140px;" class="text-right">Upah</th>
+                  <th style="width:70px;" class="text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tabelBTKL"></tbody>
+              <tfoot>
+                <tr style="background:var(--primary-light); font-weight:700;">
+                  <td colspan="3" class="text-right">TOTAL BTKL</td>
+                  <td class="text-right" id="totalBTKL">Rp 0</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Ringkasan -->
+          <div class="card" style="background:linear-gradient(135deg,#eff6ff,#dbeafe); border-color:var(--primary);">
+            <h4 style="margin-bottom:12px; color:var(--primary-dark);">
+              📌 Efek BTKL
+            </h4>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; font-size:0.92rem;">
+              <div>
+                <div class="text-muted">Total BTKL</div>
+                <strong id="efekTotal">Rp 0</strong>
+              </div>
+              <div>
+                <div class="text-muted">Total Jam Kerja</div>
+                <strong id="efekJam">0 jam</strong>
+              </div>
+              <div>
+                <div class="text-muted">Jumlah Karyawan</div>
+                <strong id="efekKaryawan">0 orang</strong>
+              </div>
+            </div>
+            <div class="form-hint mt-16">
+              💡 Saat disimpan:<br>
+              • <strong>BDP</strong> bertambah senilai total BTKL<br>
+              • <strong>Utang Gaji</strong> bertambah senilai total BTKL<br>
+              • <strong>Jurnal otomatis</strong>: BDP (Dr) / Utang Gaji (Cr)
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            💾 <span id="btnSubmitText">Simpan BTKL</span>
+          </button>
+          <button type="button" class="btn btn-outline" id="btnReset">🔄 Reset Form</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== PANEL ALAT BANTU ===== -->
+    <section class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a); border-color:var(--warning);">
+      <h2 class="card-title">🛠️ Alat Bantu</h2>
+      <p class="text-muted mb-16" style="font-size:0.9rem;">
+        Isi contoh BTKL atau reset.
+      </p>
+      <div class="flex gap-8" style="flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" id="btnSeedBTKL">
+          📥 Isi Contoh BTKL
+        </button>
+        <button type="button" class="btn btn-danger" id="btnResetBTKL">
+          🗑️ Hapus Semua BTKL (Rollback)
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== DAFTAR BTKL ===== -->
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Riwayat BTKL</h2>
+        <span class="badge badge-primary" id="totalRiwayat">0 catatan</span>
+      </div>
+
+      <div id="daftarBTKL"></div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       INPUT BTKL — versi lengkap
+       ============================================================ */
+
+    const KEY = 'btkl';
+    let baris = [];
+
+    function getDaftar() { return Store.get(KEY, []) || []; }
+    function setDaftar(list) { Store.set(KEY, list); }
+    function getBahan() { return Store.get('bahan_baku', []) || []; }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getSPK() { return Store.get('spk', []) || []; }
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+    function getKaryawan() { return Store.get('karyawan', []) || []; }
+
+    /* ============================================================
+       CEK PRASYARAT
+       ============================================================ */
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      const spk = getSPK();
+      const spkBerjalan = spk.filter(s => s.status === 'Berjalan');
+
+      if (spk.length === 0) {
+        box.innerHTML = `
+          <div class="alert alert-warning">
+            ⚠️ <div>
+              <strong>Belum ada SPK.</strong> Buat dulu di
+              <a href="spk.html">halaman SPK</a>.
+            </div>
+          </div>`;
+        return;
+      }
+
+      if (spkBerjalan.length === 0) {
+        box.innerHTML = `
+          <div class="alert alert-warning">
+            ⚠️ <div>
+              <strong>Tidak ada SPK "Berjalan".</strong> Buka
+              <a href="spk.html">halaman SPK</a> dan klik ▶️.
+            </div>
+          </div>`;
+        return;
+      }
+
+      box.innerHTML = '';
+    }
+
+    /* ============================================================
+       DROPDOWN SPK (Berjalan)
+       ============================================================ */
+    function isiDropdownSPK() {
+      const sel = document.getElementById('spkId');
+      const spk = getSPK().filter(s => s.status === 'Berjalan');
+
+      if (spk.length === 0) {
+        sel.innerHTML = '<option value="">— Tidak ada SPK Berjalan —</option>';
+        return;
+      }
+
+      const currentVal = sel.value;
+      sel.innerHTML = '<option value="">— Pilih SPK —</option>' +
+        spk.map(s => {
+          const p = getProduk().find(x => x.id === s.produkId);
+          const nama = p ? p.nama : '?';
+          return `<option value="${s.id}">${esc(s.noSPK)} — ${esc(nama)} (${Fmt.angka(s.qtyProduksi)})</option>`;
+        }).join('');
+
+      if (currentVal) sel.value = currentVal;
+    }
+
+    /* ============================================================
+       LOAD SAAT SPK DIPILIH
+       ============================================================ */
+    function loadSPK() {
+      const spkId = document.getElementById('spkId').value;
+      const panel = document.getElementById('panelBTKL');
+
+      if (!spkId) {
+        panel.classList.add('hidden');
+        baris = [];
+        return;
+      }
+
+      // Kalau masih kosong, inisialisasi 1 baris
+      if (baris.length === 0) {
+        baris.push({ nama: '', jam: 8, tarif: 25000 });
+      }
+
+      renderBaris();
+      panel.classList.remove('hidden');
+    }
+
+    document.getElementById('spkId').addEventListener('change', loadSPK);
+
+    /* ============================================================
+       TABEL BARIS KARYAWAN
+       ============================================================ */
+    function renderBaris() {
+      const tbody = document.getElementById('tabelBTKL');
+      const karyawan = getKaryawan();
+
+      if (baris.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Belum ada karyawan</td></tr>`;
+        document.getElementById('totalBTKL').textContent = 'Rp 0';
+        updateEfek();
+        return;
+      }
+
+      let total = 0;
+      let totalJam = 0;
+
+      tbody.innerHTML = baris.map((b, i) => {
+        const upah = b.jam * b.tarif;
+        total += upah;
+        totalJam += b.jam;
+
+        return `
+          <tr>
+            <td>
+              <input type="text" class="form-control" value="${esc(b.nama)}"
+                     placeholder="Nama karyawan"
+                     onchange="ubahBaris(${i}, 'nama', this.value)" />
+            </td>
+            <td>
+              <input type="number" class="form-control" min="0" step="any"
+                     value="${b.jam}"
+                     onchange="ubahBaris(${i}, 'jam', this.value)" />
+            </td>
+            <td>
+              <input type="number" class="form-control" min="0" step="any"
+                     value="${b.tarif}"
+                     onchange="ubahBaris(${i}, 'tarif', this.value)" />
+            </td>
+            <td class="text-right"><strong>${Fmt.rupiah(upah)}</strong></td>
+            <td class="text-center">
+              <button type="button" class="btn btn-sm btn-danger"
+                      onclick="hapusBaris(${i})">🗑️</button>
+            </td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('totalBTKL').textContent = Fmt.rupiah(total);
+      updateEfek(total, totalJam);
+    }
+
+    function ubahBaris(i, field, val) {
+      if (field === 'nama') {
+        baris[i].nama = val.trim();
+      } else {
+        baris[i][field] = Number(val) || 0;
+      }
+      renderBaris();
+    }
+
+    function hapusBaris(i) {
+      baris.splice(i, 1);
+      renderBaris();
+    }
+
+    document.getElementById('btnTambahBaris').addEventListener('click', function () {
+      baris.push({ nama: '', jam: 8, tarif: 25000 });
+      renderBaris();
+    });
+
+    function updateEfek(total = null, totalJam = null) {
+      if (total === null) {
+        total = baris.reduce((s, b) => s + (b.jam * b.tarif), 0);
+        totalJam = baris.reduce((s, b) => s + b.jam, 0);
+      }
+      document.getElementById('efekTotal').textContent = Fmt.rupiah(total);
+      document.getElementById('efekJam').textContent = `${Fmt.angka(totalJam)} jam`;
+      document.getElementById('efekKaryawan').textContent = `${baris.length} orang`;
+    }
+
+    /* ============================================================
+       SUBMIT BTKL
+       ============================================================ */
+    document.getElementById('formBTKL').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const spkId = document.getElementById('spkId').value;
+      if (!spkId) { notify('❌ Pilih SPK dulu', 'danger'); return; }
+      if (baris.length === 0) { notify('❌ Tambah minimal 1 karyawan', 'danger'); return; }
+
+      // Validasi
+      if (baris.some(b => !b.nama || b.jam <= 0 || b.tarif <= 0)) {
+        notify('❌ Lengkapi nama, jam, dan tarif semua karyawan', 'danger');
+        return;
+      }
+
+      const spk = getSPK().find(s => s.id === spkId);
+      if (!spk) { notify('❌ SPK tidak ditemukan', 'danger'); return; }
+
+      const totalNilai = baris.reduce((s, b) => s + (b.jam * b.tarif), 0);
+
+      // ====== 1. SIMPAN BTKL ======
+      const list = getDaftar();
+      const data = {
+        id: IDGen.generate('BTKL'),
+        spkId,
+        noSPK: spk.noSPK,
+        tglBTKL: document.getElementById('tglBTKL').value || Fmt.today(),
+        catatan: document.getElementById('catatan').value.trim(),
+        items: baris.map(b => ({
+          nama: b.nama,
+          jam: b.jam,
+          tarif: b.tarif,
+          upah: b.jam * b.tarif,
+        })),
+        totalNilai,
+        createdAt: new Date().toISOString(),
+      };
+      list.push(data);
+      setDaftar(list);
+
+      // ====== 2. BUAT JURNAL OTOMATIS ======
+      const coa = Store.get('chart_of_accounts', []) || [];
+      const akunBDP = coa.find(a => a.kategori === 'BDP');
+      const akunGaji = coa.find(a => a.kode === '2102' || (a.nama && a.nama.toLowerCase().includes('utang gaji')));
+
+      if (akunBDP && akunGaji && totalNilai > 0) {
+        const jurnalList = getJurnal();
+        jurnalList.push({
+          id: IDGen.generate('JRN'),
+          tanggal: data.tglBTKL,
+          ref: data.noSPK,
+          keterangan: `BTKL untuk ${data.noSPK}`,
+          source: 'btkl',
+          sourceId: data.id,
+          detail: [
+            { kode: akunBDP.kode, nama: akunBDP.nama, debit: totalNilai, kredit: 0 },
+            { kode: akunGaji.kode, nama: akunGaji.nama, debit: 0, kredit: totalNilai },
+          ],
+          createdAt: new Date().toISOString(),
+        });
+        Store.set('jurnal', jurnalList);
+      }
+
+      notify(`✅ BTKL disimpan — ${Fmt.rupiah(totalNilai)} masuk BDP`, 'success');
+      resetForm();
+      renderRiwayat();
+    });
+
+    /* ============================================================
+       RIWAYAT BTKL
+       ============================================================ */
+    function renderRiwayat() {
+      const list = getDaftar();
+      const container = document.getElementById('daftarBTKL');
+      document.getElementById('totalRiwayat').textContent = `${list.length} catatan`;
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="alert alert-info">
+            Belum ada catatan BTKL. Pilih SPK di form atas untuk mencatat.
+          </div>`;
+        return;
+      }
+
+      list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+      container.innerHTML = list.map(p => {
+        const itemsHTML = p.items.map(it => `
+          <tr>
+            <td>${esc(it.nama)}</td>
+            <td class="text-right">${Fmt.angka(it.jam)} jam</td>
+            <td class="text-right">${Fmt.rupiah(it.tarif)}</td>
+            <td class="text-right"><strong>${Fmt.rupiah(it.upah)}</strong></td>
+          </tr>
+        `).join('');
+
+        return `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="flex-between mb-16">
+              <div>
+                <h3 style="color:var(--primary); margin-bottom:4px;">
+                  👷 ${esc(p.noSPK)}
+                </h3>
+                <div class="text-muted" style="font-size:0.88rem;">
+                  Tanggal: <strong>${Fmt.tanggal(p.tglBTKL)}</strong>
+                  ${p.catatan ? ` | ${esc(p.catatan)}` : ''}
+                  | Total: <strong>${Fmt.rupiah(p.totalNilai)}</strong>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-danger" onclick="rollbackBTKL('${p.id}')">
+                ↩️ Rollback
+              </button>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Nama Karyawan</th>
+                    <th class="text-right" style="width:130px;">Jam</th>
+                    <th class="text-right" style="width:150px;">Tarif/Jam</th>
+                    <th class="text-right" style="width:150px;">Upah</th>
+                  </tr>
+                </thead>
+                <tbody>${itemsHTML}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    /* ============================================================
+       ROLLBACK BTKL
+       ============================================================ */
+    function rollbackBTKL(id) {
+      const p = getDaftar().find(x => x.id === id);
+      if (!p) return;
+      if (!confirm(`Rollback BTKL ${p.noSPK}?\n\nJurnal terkait akan dihapus.`)) return;
+
+      const jurnalList = getJurnal().filter(j => j.sourceId !== id);
+      Store.set('jurnal', jurnalList);
+
+      setDaftar(getDaftar().filter(x => x.id !== id));
+      notify('↩️ BTKL di-rollback', 'warning');
+      renderRiwayat();
+    }
+
+    /* ============================================================
+       RESET FORM
+       ============================================================ */
+    function resetForm() {
+      document.getElementById('formBTKL').reset();
+      document.getElementById('btklId').value = '';
+      document.getElementById('tglBTKL').value = Fmt.today();
+      document.getElementById('panelBTKL').classList.add('hidden');
+      document.getElementById('formTitle').textContent = '➕ Catat BTKL';
+      document.getElementById('btnSubmitText').textContent = 'Simpan BTKL';
+      baris = [];
+    }
+    document.getElementById('btnReset').addEventListener('click', resetForm);
+
+    /* ============================================================
+       ALAT BANTU
+       ============================================================ */
+    document.getElementById('btnSeedBTKL').addEventListener('click', function () {
+      const spk = getSPK().filter(s => s.status === 'Berjalan');
+      if (spk.length === 0) {
+        notify('❌ Tidak ada SPK Berjalan', 'danger');
+        return;
+      }
+
+      const target = spk[0];
+      document.getElementById('spkId').value = target.id;
+
+      // Isi baris contoh
+      baris = [
+        { nama: 'Budi Santoso', jam: 8, tarif: 30000 },
+        { nama: 'Siti Aminah', jam: 6, tarif: 28000 },
+        { nama: 'Andi Wijaya', jam: 5, tarif: 32000 },
+      ];
+
+      renderBaris();
+      document.getElementById('panelBTKL').classList.remove('hidden');
+      document.getElementById('catatan').value = 'Contoh BTKL shift 1';
+
+      notify(`✅ Contoh BTKL untuk ${target.noSPK} siap. Klik "Simpan BTKL".`, 'info');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    document.getElementById('btnResetBTKL').addEventListener('click', function () {
+      const list = getDaftar();
+      if (list.length === 0) {
+        notify('ℹ️ Tidak ada BTKL untuk dihapus.', 'warning');
+        return;
+      }
+      if (!confirm(`Yakin hapus SEMUA BTKL (${list.length} catatan)?\nJurnal terkait akan dihapus.`)) return;
+
+      const jurnalList = getJurnal().filter(j => j.source !== 'btkl');
+          Store.set('jurnal', jurnalList);
+
+      setDaftar([]);
+      notify('🗑️ Semua BTKL dihapus', 'warning');
+      renderRiwayat();
+    });
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    isiDropdownSPK();
+    document.getElementById('tglBTKL').value = Fmt.today();
+    renderRiwayat();
+    cekPrasyarat();
+  </script>
+</body>
+</html>

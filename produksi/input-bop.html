@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Input BOP — Ilham ERP Manufaktur</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">🏭</span>
+        <span>Ilham ERP <small>MANUFAKTUR</small></span>
+      </a>
+      <nav class="breadcrumb">
+        <a href="../index.html">Dashboard</a>
+        <span>/</span>
+        <a href="index.html">Produksi</a>
+        <span>/</span>
+        <span class="current">Input BOP</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <section class="page-title">
+      <h1>⚙️ Input BOP (Biaya Overhead Pabrik)</h1>
+      <p class="subtitle">
+        Ada 2 sisi BOP: <strong>Dibebankan</strong> (tarif per jam work center,
+        masuk ke tiap SPK/BDP) dan <strong>Sesungguhnya</strong> (biaya aktual
+        seperti listrik &amp; penyusutan, per periode). Selisih keduanya jadi
+        <strong>Selisih BOP</strong> yang dianalisis di Laporan Variance nanti.
+      </p>
+    </section>
+
+    <!-- Ringkasan Selisih -->
+    <section class="menu-group">
+      <div class="card-grid">
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📥</div>
+          <h3 id="ringkasDibebankan">Rp 0</h3>
+          <p>Total BOP Dibebankan</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">📤</div>
+          <h3 id="ringkasSesungguhnya">Rp 0</h3>
+          <p>Total BOP Sesungguhnya</p>
+        </div>
+        <div class="menu-card" style="cursor:default;">
+          <div class="card-icon">⚖️</div>
+          <h3 id="ringkasSelisih">Rp 0</h3>
+          <p id="labelSelisih">Selisih BOP</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         BAGIAN A — BOP DIBEBANKAN PER SPK
+         ============================================================ -->
+    <div id="alertPrasyarat"></div>
+
+    <section class="card">
+      <h2 class="card-title">📥 BOP Dibebankan — per SPK</h2>
+      <p class="text-muted mb-16" style="font-size:0.9rem;">
+        Dihitung dari <strong>tarif BOP per jam</strong> tiap Work Center × jam pemakaian mesin.
+      </p>
+
+      <form id="formBebankan" autocomplete="off">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="spkId">Pilih SPK <span class="required">*</span></label>
+            <select id="spkId" class="form-select" required>
+              <option value="">— Pilih SPK —</option>
+            </select>
+            <div class="form-hint">Hanya SPK berstatus "Berjalan"</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tglBOP">Tanggal</label>
+            <input type="date" id="tglBOP" class="form-control" />
+          </div>
+        </div>
+
+        <div id="panelBebankan" class="hidden" style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+
+          <div class="flex-between mb-16">
+            <h3 style="font-size:1rem; font-weight:700;">⚙️ Pemakaian Work Center</h3>
+            <button type="button" class="btn btn-sm btn-accent" id="btnTambahBaris">➕ Tambah Work Center</button>
+          </div>
+
+          <div class="table-wrapper mb-16">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Work Center</th>
+                  <th style="width:120px;">Jam Pakai</th>
+                  <th style="width:160px;" class="text-right">Tarif/Jam</th>
+                  <th style="width:150px;" class="text-right">Biaya</th>
+                  <th style="width:70px;" class="text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tabelBebankan"></tbody>
+              <tfoot>
+                <tr style="background:var(--primary-light); font-weight:700;">
+                  <td colspan="3" class="text-right">TOTAL BOP DIBEBANKAN</td>
+                  <td class="text-right" id="totalBebankan">Rp 0</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div class="form-hint mb-16">
+            💡 Saat disimpan: <strong>BDP</strong> bertambah, <strong>BOP Dibebankan</strong>
+            (akun kredit) bertambah. Jurnal: BDP (Dr) / BOP Dibebankan (Cr).
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 Simpan BOP Dibebankan</button>
+          <button type="button" class="btn btn-outline" id="btnResetBebankan">🔄 Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Riwayat BOP Dibebankan</h2>
+        <span class="badge badge-primary" id="totalRiwayatBebankan">0 catatan</span>
+      </div>
+      <div id="daftarBebankan"></div>
+    </section>
+
+    <!-- ============================================================
+         BAGIAN B — BOP SESUNGGUHNYA (AKTUAL, PER PERIODE)
+         ============================================================ -->
+    <section class="card" style="border-color:var(--warning);">
+      <h2 class="card-title">📤 BOP Sesungguhnya — Biaya Aktual</h2>
+      <p class="text-muted mb-16" style="font-size:0.9rem;">
+        Biaya overhead nyata yang terjadi (listrik, penyusutan mesin, dll),
+        tidak terikat ke SPK tertentu — dicatat per periode.
+      </p>
+
+      <form id="formAktual" autocomplete="off">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="tglAktual">Tanggal <span class="required">*</span></label>
+            <input type="date" id="tglAktual" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nominalAktual">Nominal (Rp) <span class="required">*</span></label>
+            <input type="number" id="nominalAktual" class="form-control" min="0" step="any" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="keteranganAktual">Keterangan <span class="required">*</span></label>
+          <input type="text" id="keteranganAktual" class="form-control" placeholder="Misal: Listrik pabrik bulan Januari" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="akunKredit">Dibayar / Dicatat Lewat Akun <span class="required">*</span></label>
+          <select id="akunKredit" class="form-select" required>
+            <option value="">— Pilih Akun (Kas/Bank/Utang/Akumulasi Penyusutan) —</option>
+          </select>
+          <div class="form-hint">Jurnal: BOP Sesungguhnya (Dr) / Akun ini (Cr)</div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 Simpan BOP Sesungguhnya</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="flex-between mb-16">
+        <h2 class="card-title mb-0">📋 Riwayat BOP Sesungguhnya</h2>
+        <span class="badge badge-primary" id="totalRiwayatAktual">0 catatan</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr><th style="width:120px;">Tanggal</th><th>Keterangan</th><th>Dicatat Lewat</th><th class="text-right" style="width:150px;">Nominal</th><th class="text-center" style="width:80px;">Aksi</th></tr>
+          </thead>
+          <tbody id="tabelAktual"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <div class="container">
+      <p>© 2025 Ilham ERP — Manufaktur | Accounting Learning System</p>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script src="../assets/js/app.js"></script>
+  <script>
+    /* ============================================================
+       INPUT BOP — Dibebankan (per SPK) + Sesungguhnya (aktual)
+       ============================================================ */
+
+    const KEY_BEBANKAN = 'bop_dibebankan';
+    const KEY_AKTUAL = 'bop_aktual';
+    let baris = [];
+
+    function getBebankan() { return Store.get(KEY_BEBANKAN, []) || []; }
+    function setBebankan(list) { Store.set(KEY_BEBANKAN, list); }
+    function getAktual() { return Store.get(KEY_AKTUAL, []) || []; }
+    function setAktual(list) { Store.set(KEY_AKTUAL, list); }
+    function getSPK() { return Store.get('spk', []) || []; }
+    function getProduk() { return Store.get('produk_jadi', []) || []; }
+    function getWC() { return Store.get('work_center', []) || []; }
+    function getJurnal() { return Store.get('jurnal', []) || []; }
+    function getCOA() { return Store.get('chart_of_accounts', []) || []; }
+
+    function akunBDP() { return getCOA().find(a => a.kategori === 'BDP'); }
+    function akunBOPDibebankan() { return getCOA().find(a => a.kode === '5202' || (a.nama || '').toLowerCase().includes('bop dibebankan')); }
+    function akunBOPSesungguhnya() { return getCOA().find(a => a.kode === '5201' || (a.nama || '').toLowerCase().includes('bop sesungguhnya')); }
+
+    /* ============================================================
+       RINGKASAN SELISIH BOP
+       ============================================================ */
+    function renderRingkasan() {
+      const totalDibebankan = getBebankan().reduce((s, b) => s + b.totalNilai, 0);
+      const totalAktual = getAktual().reduce((s, a) => s + a.nominal, 0);
+      const selisih = totalDibebankan - totalAktual;
+
+      document.getElementById('ringkasDibebankan').textContent = Fmt.rupiah(totalDibebankan);
+      document.getElementById('ringkasSesungguhnya').textContent = Fmt.rupiah(totalAktual);
+
+      const elSelisih = document.getElementById('ringkasSelisih');
+      const elLabel = document.getElementById('labelSelisih');
+      elSelisih.textContent = Fmt.rupiah(Math.abs(selisih));
+
+      if (Math.abs(selisih) < 1) {
+        elLabel.textContent = 'Selisih BOP (Impas)';
+      } else if (selisih > 0) {
+        elLabel.textContent = 'Selisih Lebih Dibebankan (Overapplied)';
+      } else {
+        elLabel.textContent = 'Selisih Kurang Dibebankan (Underapplied)';
+      }
+    }
+
+    /* ============================================================
+       BAGIAN A — BOP DIBEBANKAN
+       ============================================================ */
+    function cekPrasyarat() {
+      const box = document.getElementById('alertPrasyarat');
+      const berjalan = getSPK().filter(s => s.status === 'Berjalan');
+      const wc = getWC();
+
+      if (wc.length === 0) {
+        box.innerHTML = `<div class="alert alert-warning">⚠️ <div><strong>Belum ada Work Center.</strong> Buat dulu di <a href="../master-data/work-center.html">Master Data → Work Center</a>.</div></div>`;
+        return;
+      }
+      if (berjalan.length === 0) {
+        box.innerHTML = `<div class="alert alert-warning">⚠️ <div><strong>Tidak ada SPK "Berjalan".</strong> Buka <a href="spk.html">halaman SPK</a>.</div></div>`;
+        return;
+      }
+      box.innerHTML = '';
+    }
+
+    function isiDropdownSPK() {
+      const sel = document.getElementById('spkId');
+      const spk = getSPK().filter(s => s.status === 'Berjalan');
+
+      if (spk.length === 0) {
+        sel.innerHTML = '<option value="">— Tidak ada SPK Berjalan —</option>';
+        return;
+      }
+
+      const currentVal = sel.value;
+      sel.innerHTML = '<option value="">— Pilih SPK —</option>' +
+        spk.map(s => {
+          const p = getProduk().find(x => x.id === s.produkId);
+          return `<option value="${s.id}">${esc(s.noSPK)} — ${esc(p ? p.nama : '?')} (${Fmt.angka(s.qtyProduksi)})</option>`;
+        }).join('');
+
+      if (currentVal) sel.value = currentVal;
+    }
+
+    function loadSPK() {
+      const spkId = document.getElementById('spkId').value;
+      const panel = document.getElementById('panelBebankan');
+
+      if (!spkId) { panel.classList.add('hidden'); baris = []; return; }
+
+      const wc = getWC();
+      if (baris.length === 0 && wc.length > 0) {
+        baris.push({ workCenterId: wc[0].id, jam: 1 });
+      }
+
+      renderBaris();
+      panel.classList.remove('hidden');
+    }
+    document.getElementById('spkId').addEventListener('change', loadSPK);
+
+    function renderBaris() {
+      const tbody = document.getElementById('tabelBebankan');
+      const wc = getWC();
+
+      if (baris.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Belum ada work center dipakai</td></tr>`;
+        document.getElementById('totalBebankan').textContent = 'Rp 0';
+        return;
+      }
+
+      let total = 0;
+
+      tbody.innerHTML = baris.map((b, i) => {
+        const w = wc.find(x => x.id === b.workCenterId);
+        const tarif = w ? Number(w.tarifBOP) : 0;
+        const biaya = b.jam * tarif;
+        total += biaya;
+
+        return `
+          <tr>
+            <td>
+              <select class="form-select" onchange="ubahBaris(${i}, 'workCenterId', this.value)">
+                ${wc.map(x => `<option value="${x.id}" ${x.id === b.workCenterId ? 'selected' : ''}>${esc(x.kode)} — ${esc(x.nama)}</option>`).join('')}
+              </select>
+            </td>
+            <td><input type="number" class="form-control" min="0" step="any" value="${b.jam}" onchange="ubahBaris(${i}, 'jam', this.value)" /></td>
+            <td class="text-right">${Fmt.rupiah(tarif)}</td>
+            <td class="text-right"><strong>${Fmt.rupiah(biaya)}</strong></td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-danger" onclick="hapusBaris(${i})">🗑️</button></td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('totalBebankan').textContent = Fmt.rupiah(total);
+    }
+
+    function ubahBaris(i, field, val) {
+      baris[i][field] = field === 'jam' ? (Number(val) || 0) : val;
+      renderBaris();
+    }
+    function hapusBaris(i) { baris.splice(i, 1); renderBaris(); }
+
+    document.getElementById('btnTambahBaris').addEventListener('click', function () {
+      const wc = getWC();
+      if (wc.length === 0) { notify('❌ Belum ada work center', 'danger'); return; }
+      baris.push({ workCenterId: wc[0].id, jam: 1 });
+      renderBaris();
+    });
+
+    document.getElementById('formBebankan').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const spkId = document.getElementById('spkId').value;
+      if (!spkId) { notify('❌ Pilih SPK dulu', 'danger'); return; }
+      if (baris.length === 0) { notify('❌ Tambah minimal 1 work center', 'danger'); return; }
+      if (baris.some(b => b.jam <= 0)) { notify('❌ Jam pakai harus > 0', 'danger'); return; }
+
+      const spk = getSPK().find(s => s.id === spkId);
+      const wc = getWC();
+      const items = baris.map(b => {
+        const w = wc.find(x => x.id === b.workCenterId);
+        const tarif = w ? Number(w.tarifBOP) : 0;
+        return { workCenterId: b.workCenterId, kode: w ? w.kode : '?', nama: w ? w.nama : '?', jam: b.jam, tarif, biaya: b.jam * tarif };
+      });
+      const totalNilai = items.reduce((s, it) => s + it.biaya, 0);
+
+      const list = getBebankan();
+      const data = {
+        id: IDGen.generate('BOPB'),
+        spkId,
+        noSPK: spk.noSPK,
+        tglBOP: document.getElementById('tglBOP').value || Fmt.today(),
+        items,
+        totalNilai,
+        createdAt: new Date().toISOString(),
+      };
+      list.push(data);
+      setBebankan(list);
+
+      // Jurnal: BDP (Dr) / BOP Dibebankan (Cr)
+      const bdp = akunBDP();
+      const bopDibebankan = akunBOPDibebankan();
+      if (bdp && bopDibebankan && totalNilai > 0) {
+        const jurnalList = getJurnal();
+        jurnalList.push({
+          id: IDGen.generate('JRN'),
+          tanggal: data.tglBOP,
+          ref: data.noSPK,
+          keterangan: `BOP dibebankan untuk ${data.noSPK}`,
+          source: 'bop_dibebankan',
+          sourceId: data.id,
+          detail: [
+            { kode: bdp.kode, nama: bdp.nama, debit: totalNilai, kredit: 0 },
+            { kode: bopDibebankan.kode, nama: bopDibebankan.nama, debit: 0, kredit: totalNilai },
+          ],
+          createdAt: new Date().toISOString(),
+        });
+        Store.set('jurnal', jurnalList);
+      }
+
+      notify(`✅ BOP Dibebankan disimpan — ${Fmt.rupiah(totalNilai)} masuk BDP`, 'success');
+      document.getElementById('formBebankan').reset();
+      document.getElementById('panelBebankan').classList.add('hidden');
+      baris = [];
+      document.getElementById('tglBOP').value = Fmt.today();
+      renderRiwayatBebankan();
+      renderRingkasan();
+    });
+
+    function renderRiwayatBebankan() {
+      const list = getBebankan().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const container = document.getElementById('daftarBebankan');
+      document.getElementById('totalRiwayatBebankan').textContent = `${list.length} catatan`;
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="alert alert-info">Belum ada BOP dibebankan.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(d => {
+        const rows = d.items.map(it => `
+          <tr><td>${esc(it.kode)} — ${esc(it.nama)}</td><td class="text-right">${Fmt.angka(it.jam)} jam</td><td class="text-right">${Fmt.rupiah(it.tarif)}</td><td class="text-right">${Fmt.rupiah(it.biaya)}</td></tr>
+        `).join('');
+        return `
+          <div class="card" style="margin-bottom:16px;">
+            <div class="flex-between mb-16">
+              <div>
+                <h3 style="color:var(--primary); margin-bottom:4px;">⚙️ ${esc(d.noSPK)}</h3>
+                <div class="text-muted" style="font-size:0.88rem;">Tanggal: <strong>${Fmt.tanggal(d.tglBOP)}</strong> | Total: <strong>${Fmt.rupiah(d.totalNilai)}</strong></div>
+              </div>
+              <button class="btn btn-sm btn-danger" onclick="rollbackBebankan('${d.id}')">↩️ Rollback</button>
+            </div>
+            <div class="table-wrapper"><table class="table"><thead><tr><th>Work Center</th><th class="text-right" style="width:110px;">Jam</th><th class="text-right" style="width:140px;">Tarif</th><th class="text-right" style="width:140px;">Biaya</th></tr></thead><tbody>${rows}</tbody></table></div>
+          </div>`;
+      }).join('');
+    }
+
+    function rollbackBebankan(id) {
+      if (!confirm('Rollback BOP dibebankan ini? Jurnal terkait akan dihapus.')) return;
+      setBebankan(getBebankan().filter(x => x.id !== id));
+      Store.set('jurnal', getJurnal().filter(j => j.sourceId !== id));
+      notify('↩️ BOP dibebankan di-rollback', 'warning');
+      renderRiwayatBebankan();
+      renderRingkasan();
+    }
+
+    document.getElementById('btnResetBebankan').addEventListener('click', function () {
+      document.getElementById('formBebankan').reset();
+      document.getElementById('panelBebankan').classList.add('hidden');
+      baris = [];
+      document.getElementById('tglBOP').value = Fmt.today();
+    });
+
+    /* ============================================================
+       BAGIAN B — BOP SESUNGGUHNYA
+       ============================================================ */
+    function isiDropdownAkunKredit() {
+      const sel = document.getElementById('akunKredit');
+      const coa = getCOA();
+      const bopSesungguhnya = akunBOPSesungguhnya();
+      const pilihan = coa.filter(a => !bopSesungguhnya || a.kode !== bopSesungguhnya.kode);
+
+      sel.innerHTML = '<option value="">— Pilih Akun —</option>' +
+        pilihan.map(a => `<option value="${a.kode}" data-nama="${esc(a.nama)}">${esc(a.kode)} — ${esc(a.nama)}</option>`).join('');
+    }
+
+    document.getElementById('formAktual').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const bopSesungguhnya = akunBOPSesungguhnya();
+      if (!bopSesungguhnya) { notify('❌ Akun "BOP Sesungguhnya" belum ada di COA', 'danger'); return; }
+
+      const akunKreditSel = document.getElementById('akunKredit');
+      const akunKreditKode = akunKreditSel.value;
+      if (!akunKreditKode) { notify('❌ Pilih akun kredit dulu', 'danger'); return; }
+      const akunKreditNama = akunKreditSel.selectedOptions[0].dataset.nama;
+
+      const nominal = Number(document.getElementById('nominalAktual').value) || 0;
+      if (nominal <= 0) { notify('❌ Nominal harus > 0', 'danger'); return; }
+
+      const data = {
+        id: IDGen.generate('BOPA'),
+        tanggal: document.getElementById('tglAktual').value || Fmt.today(),
+        keterangan: document.getElementById('keteranganAktual').value.trim(),
+        nominal,
+        akunKreditKode,
+        akunKreditNama,
+        createdAt: new Date().toISOString(),
+      };
+
+      const list = getAktual();
+      list.push(data);
+      setAktual(list);
+
+      // Jurnal: BOP Sesungguhnya (Dr) / Akun pilihan (Cr)
+      const jurnalList = getJurnal();
+      jurnalList.push({
+        id: IDGen.generate('JRN'),
+        tanggal: data.tanggal,
+        ref: data.id,
+        keterangan: `BOP sesungguhnya: ${data.keterangan}`,
+        source: 'bop_aktual',
+        sourceId: data.id,
+        detail: [
+          { kode: bopSesungguhnya.kode, nama: bopSesungguhnya.nama, debit: nominal, kredit: 0 },
+          { kode: akunKreditKode, nama: akunKreditNama, debit: 0, kredit: nominal },
+        ],
+        createdAt: new Date().toISOString(),
+      });
+      Store.set('jurnal', jurnalList);
+
+      notify(`✅ BOP Sesungguhnya dicatat — ${Fmt.rupiah(nominal)}`, 'success');
+      document.getElementById('formAktual').reset();
+      document.getElementById('tglAktual').value = Fmt.today();
+      renderTabelAktual();
+      renderRingkasan();
+    });
+
+    function renderTabelAktual() {
+      const list = getAktual().slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const tbody = document.getElementById('tabelAktual');
+      document.getElementById('totalRiwayatAktual').textContent = `${list.length} catatan`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Belum ada BOP sesungguhnya.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(a => `
+        <tr>
+          <td>${Fmt.tanggal(a.tanggal)}</td>
+          <td>${esc(a.keterangan)}</td>
+          <td>${esc(a.akunKreditKode)} — ${esc(a.akunKreditNama)}</td>
+          <td class="text-right"><strong>${Fmt.rupiah(a.nominal)}</strong></td>
+          <td class="text-center"><button class="btn btn-sm btn-danger" onclick="hapusAktual('${a.id}')">🗑️</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function hapusAktual(id) {
+      if (!confirm('Hapus catatan BOP sesungguhnya ini? Jurnal terkait akan dihapus.')) return;
+      setAktual(getAktual().filter(x => x.id !== id));
+      Store.set('jurnal', getJurnal().filter(j => j.sourceId !== id));
+      notify('🗑️ BOP sesungguhnya dihapus', 'warning');
+      renderTabelAktual();
+      renderRingkasan();
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    isiDropdownSPK();
+    isiDropdownAkunKredit();
+    document.getElementById('tglBOP').value = Fmt.today();
+    document.getElementById('tglAktual').value = Fmt.today();
+    renderRiwayatBebankan();
+    renderTabelAktual();
+    renderRingkasan();
+    cekPrasyarat();
+  </script>
+</body>
+</html>
